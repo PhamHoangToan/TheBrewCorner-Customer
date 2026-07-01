@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Badge, Button } from 'antd'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { CloseOutlined, CoffeeOutlined, LogoutOutlined, MenuOutlined, ShoppingCartOutlined } from '@ant-design/icons'
+import { CoffeeOutlined, LogoutOutlined, ShoppingCartOutlined } from '@ant-design/icons'
 import { useCartCount, useCartStore } from '../../store/cart.store'
 import { useCustomerAuthStore } from '../../store/auth.store'
 import styles from './navbar.module.css'
@@ -17,10 +16,8 @@ const Navbar: React.FC = () => {
   const logout = useCustomerAuthStore((state) => state.logout)
   const navigate = useNavigate()
   const location = useLocation()
-  const reduceMotion = useReducedMotion()
 
   const [scrolled, setScrolled] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [cartBump, setCartBump] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const prevCount = useRef(count)
@@ -43,14 +40,9 @@ const Navbar: React.FC = () => {
     return () => window.clearTimeout(timer)
   }, [count])
 
-  useEffect(() => {
-    setMenuOpen(false)
-  }, [location.pathname])
-
   const isActive = (path: string) => location.pathname === path
 
   const goToSection = (id: string) => {
-    setMenuOpen(false)
     if (location.pathname === '/') {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
     } else {
@@ -58,27 +50,6 @@ const Navbar: React.FC = () => {
       setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }), 300)
     }
   }
-
-  const UserChip = ({ compact }: { compact?: boolean }) => (
-    <div className={styles.userChip}>
-      <span className={styles.userAvatar}>{getInitials(user!.name)}</span>
-      <button
-        type="button"
-        className={styles.profileBtn}
-        onClick={() => navigate('/profile')}
-      >
-        {compact ? user!.name.split(' ').slice(-1)[0] : user!.name}
-      </button>
-      <button
-        type="button"
-        className={styles.logoutBtn}
-        aria-label="Đăng xuất"
-        onClick={logout}
-      >
-        <LogoutOutlined />
-      </button>
-    </div>
-  )
 
   return (
     <>
@@ -89,13 +60,13 @@ const Navbar: React.FC = () => {
             <span className={styles.logoMark}>
               <CoffeeOutlined />
             </span>
-            <div>
+            <div className={styles.logoText}>
               <div className={styles.logoName}>The Brew Corner</div>
               <div className={styles.logoSub}>Specialty Coffee</div>
             </div>
           </Link>
 
-          <nav className={`${styles.nav} ${menuOpen ? styles.navOpen : ''}`}>
+          <nav className={styles.nav}>
             <Link to="/" className={`${styles.navLink} ${isActive('/') ? styles.navLinkActive : ''}`}>
               Trang chủ
             </Link>
@@ -114,28 +85,24 @@ const Navbar: React.FC = () => {
             <button type="button" className={styles.navLink} onClick={() => goToSection('locations')}>
               Chi nhánh
             </button>
-
-            {/* chỉ hiện trong menu mobile */}
-            <div className={styles.mobileActions}>
-              {user ? <UserChip /> : (
-                <Button className={styles.loginBtn} onClick={() => navigate('/login')}>
-                  Đăng nhập
-                </Button>
-              )}
-              <Button type="primary" className={styles.orderBtn} onClick={() => navigate('/menu')}>
-                Đặt hàng
-              </Button>
-            </div>
           </nav>
 
           <div className={styles.actions}>
-            <div className={styles.desktopOnly}>
-              {user ? <UserChip compact /> : (
-                <Button className={styles.loginBtn} onClick={() => navigate('/login')}>
-                  Đăng nhập
-                </Button>
-              )}
-            </div>
+            {user ? (
+              <div className={styles.userChip}>
+                <span className={styles.userAvatar}>{getInitials(user.name)}</span>
+                <button type="button" className={styles.profileBtn} onClick={() => navigate('/profile')}>
+                  {user.name}
+                </button>
+                <button type="button" className={styles.logoutBtn} aria-label="Đăng xuất" onClick={logout}>
+                  <LogoutOutlined />
+                </button>
+              </div>
+            ) : (
+              <Button className={styles.loginBtn} onClick={() => navigate('/login')}>
+                Đăng nhập
+              </Button>
+            )}
             <Badge count={count} color="#662C21" className={cartBump ? styles.cartBump : ''}>
               <Button
                 shape="circle"
@@ -146,33 +113,11 @@ const Navbar: React.FC = () => {
                 aria-label="Giỏ hàng"
               />
             </Badge>
-            <Button type="primary" className={`${styles.orderBtn} ${styles.desktopOnly}`} onClick={() => navigate('/menu')}>
+            <Button type="primary" className={styles.orderBtn} onClick={() => navigate('/menu')}>
               Đặt hàng
             </Button>
-            <button
-              type="button"
-              className={styles.hamburgerBtn}
-              aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
-              onClick={() => setMenuOpen((v) => !v)}
-            >
-              {menuOpen ? <CloseOutlined /> : <MenuOutlined />}
-            </button>
           </div>
         </div>
-
-        <AnimatePresence>
-          {menuOpen && (
-            <motion.div
-              className={styles.backdrop}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: reduceMotion ? 0 : 0.2 }}
-              onClick={() => setMenuOpen(false)}
-              aria-hidden="true"
-            />
-          )}
-        </AnimatePresence>
       </header>
     </>
   )
