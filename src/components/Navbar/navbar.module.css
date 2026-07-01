@@ -1,16 +1,22 @@
+.scrollSentinel {
+  height: 1px;
+  width: 100%;
+}
+
 .header {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
   border-bottom: 1px solid rgba(102, 44, 33, 0.08);
-  transition: box-shadow 0.3s, background 0.3s;
+  transition: box-shadow 0.35s var(--ease-smooth, ease), background 0.35s var(--ease-smooth, ease), border-color 0.35s ease;
 }
 
 .scrolled {
   background: rgba(255, 255, 255, 0.97);
+  border-bottom-color: transparent;
   box-shadow: 0 4px 24px rgba(102, 44, 33, 0.1);
 }
 
@@ -33,9 +39,24 @@
   transition: opacity 0.2s;
 }
 
-.logo:hover { opacity: 0.82; }
+.logo:hover .logoMark { transform: scale(1.05); }
 
-.logoIcon { font-size: 32px; }
+.logoMark {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  color: #fee1bf;
+  background: linear-gradient(135deg, #7a3a2a 0%, #4a1f16 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 2px 10px rgba(102, 44, 33, 0.35);
+  transition: transform 0.25s var(--ease-spring, ease);
+}
 
 .logoName {
   font-family: 'Montserrat', sans-serif;
@@ -124,23 +145,42 @@ button.navLink {
   display: none;
 }
 
-.userBox {
+.userChip {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #392315;
+  padding: 4px 6px 4px 4px;
+  border-radius: 999px;
+  background: #fff1e6;
+  border: 1px solid rgba(102, 44, 33, 0.12);
+  max-width: 220px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.userChip:hover { background: #fee8d6; border-color: rgba(102, 44, 33, 0.22); }
+
+.userAvatar {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: 'Montserrat', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  max-width: 200px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  background: #662C21;
 }
 
 .profileBtn {
   border: 0;
   background: transparent;
-  color: inherit;
+  color: #392315;
   cursor: pointer;
-  font: inherit;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
   padding: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -148,6 +188,23 @@ button.navLink {
   transition: color 0.2s;
 }
 .profileBtn:hover { color: #662C21; }
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #9a6a55;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+.logoutBtn:hover { color: #662C21; background: rgba(102, 44, 33, 0.08); }
 
 .loginBtn {
   border-color: #662C21 !important;
@@ -165,11 +222,25 @@ button.navLink {
 .cartBtn {
   border-color: rgba(102,44,33,0.3) !important;
   color: #662C21 !important;
-  transition: border-color 0.2s, background 0.2s !important;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s var(--ease-spring, ease) !important;
 }
 .cartBtn:hover {
   border-color: #662C21 !important;
   background: #fff8f2 !important;
+}
+
+@keyframes cartBump {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+
+.cartBump .cartBtn {
+  animation: cartBump 0.32s var(--ease-spring, ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cartBump .cartBtn { animation: none; }
 }
 
 .orderBtn {
@@ -216,14 +287,23 @@ button.navLink {
     max-height: 0;
     overflow: hidden;
     opacity: 0;
-    transition: max-height 0.3s var(--ease-smooth, ease), opacity 0.2s ease;
+    transform: translateY(-6px);
+    transition:
+      max-height 0.32s var(--ease-spring, ease),
+      opacity 0.22s var(--ease-smooth, ease),
+      transform 0.28s var(--ease-spring, ease);
     z-index: 95;
   }
 
   .navOpen {
     max-height: 80vh;
     opacity: 1;
+    transform: translateY(0);
     overflow-y: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav { transition: max-height 0.01s linear, opacity 0.01s linear; transform: none; }
   }
 
   .navLink {
@@ -240,9 +320,10 @@ button.navLink {
     padding-top: 14px;
   }
 
-  .mobileActions .userBox {
+  .mobileActions .userChip {
     justify-content: center;
-    padding: 10px 0;
+    max-width: none;
+    padding: 8px 10px;
   }
 
   .mobileActions .orderBtn,
