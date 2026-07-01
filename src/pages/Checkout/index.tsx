@@ -5,6 +5,7 @@ import { ArrowLeftOutlined, CheckCircleFilled, CopyOutlined, GiftOutlined, TagOu
 import Navbar from '../../components/Navbar'
 import { guestOrdersService } from '../../services/guest-orders.service'
 import { orderService } from '../../services/order.service'
+import { pendingTransferService } from '../../services/pending-transfer.service'
 import { promotionService, type Promotion } from '../../services/promotion.service'
 import { useCustomerAuthStore } from '../../store/auth.store'
 import { useCartStore, useCartTotal } from '../../store/cart.store'
@@ -42,6 +43,8 @@ const CheckoutPage: React.FC = () => {
   const user = useCustomerAuthStore((state) => state.user)
   const [submitting, setSubmitting] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('cash')
+  const [transferCode, setTransferCode] = useState<string | null>(null)
+  const [transferStatus, setTransferStatus] = useState<'idle' | 'creating' | 'WAITING' | 'PAID'>('idle')
   const [validPromotions, setValidPromotions] = useState<Promotion[]>([])
   const [promoCode, setPromoCode] = useState('')
   const [appliedPromotion, setAppliedPromotion] = useState<AppliedPromotion | null>(null)
@@ -82,6 +85,37 @@ const CheckoutPage: React.FC = () => {
     })
   }, [total])
 
+  useEffect(() => {
+    if (paymentMethod !== 'transfer' || transferStatus === 'PAID' || payableTotal <= 0) return
+    let cancelled = false
+    setTransferStatus('creating')
+    pendingTransferService
+      .create(payableTotal)
+      .then((pt) => {
+        if (cancelled) return
+        setTransferCode(pt.code)
+        setTransferStatus('WAITING')
+      })
+      .catch(() => { if (!cancelled) setTransferStatus('idle') })
+    return () => { cancelled = true }
+  }, [paymentMethod, payableTotal])
+
+  useEffect(() => {
+    if (!transferCode || transferStatus !== 'WAITING') return
+    const interval = setInterval(() => {
+      pendingTransferService
+        .get(transferCode)
+        .then((pt) => {
+          if (pt.status === 'PAID') {
+            setTransferStatus('PAID')
+            message.success('Đã nhận được chuyển khoản!')
+          }
+        })
+        .catch(() => {})
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [transferCode, transferStatus])
+
   const applyPromotion = (promotion: Promotion) => {
     setAppliedPromotion({
       code: promotion.code,
@@ -120,6 +154,10 @@ const CheckoutPage: React.FC = () => {
   }
 
   const handleSubmit = async (values: CheckoutForm) => {
+    if (values.payment === 'transfer' && transferStatus !== 'PAID') {
+      message.warning('Vui lòng chuyển khoản và chờ xác nhận trước khi đặt hàng')
+      return
+    }
     setSubmitting(true)
     try {
       const order = await orderService.create({
@@ -128,6 +166,7 @@ const CheckoutPage: React.FC = () => {
         promotionName: appliedPromotion?.name,
         promotionDiscountPercent: appliedPromotion?.discountPercent,
         orderType, customerId: user?.id,
+        pendingTransferCode: values.payment === 'transfer' ? transferCode ?? undefined : undefined,
       })
       guestOrdersService.save(order, user?.id)
       clearCart()
@@ -226,21 +265,25 @@ const CheckoutPage: React.FC = () => {
                   </Radio.Group>
                 </Form.Item>
 
-                {paymentMethod === 'transfer' && (
+                {paymentMethod === 'transfer' && (() => {
+                  const transferContent = transferCode ? `TheBrewCorner ${transferCode}` : 'Đang tạo mã chuyển khoản...'
+                  return (
                   <div className={styles.qrBox}>
                     <div className={styles.qrBoxHeader}>
                       <span className={styles.qrBoxTitle}>Quét mã để chuyển khoản</span>
                       <span className={styles.qrBoxWaiting}>
                         <span className={styles.qrBoxDot} />
-                        Chờ xác nhận từ quán
+                        {transferStatus === 'PAID' ? 'Đã nhận được chuyển khoản ✓' : 'Chờ xác nhận chuyển khoản'}
                       </span>
                     </div>
                     <div className={styles.qrBoxBody}>
-                      <img
-                        src={buildVietQRUrl(payableTotal, 'TheBrewCorner')}
-                        alt="VietQR"
-                        className={styles.qrBoxImage}
-                      />
+                      {transferCode ? (
+                        <img
+                          src={buildVietQRUrl(payableTotal, transferCode)}
+                          alt="VietQR"
+                          className={styles.qrBoxImage}
+                        />
+                      ) : null}
                       <div className={styles.qrBoxInfo}>
                         <div className={styles.qrBoxBank}>ACB</div>
                         <div className={styles.qrBoxField}>
@@ -272,12 +315,13 @@ const CheckoutPage: React.FC = () => {
                         <div className={styles.qrBoxField}>
                           <span className={styles.qrBoxLabel}>Nội dung CK</span>
                           <span className={styles.qrBoxValue}>
-                            TheBrewCorner
+                            {transferContent}
                             <button
                               type="button"
                               className={styles.qrBoxCopy}
+                              disabled={!transferCode}
                               onClick={() => {
-                                navigator.clipboard.writeText('TheBrewCorner')
+                                navigator.clipboard.writeText(transferContent)
                                 message.success('Đã sao chép')
                               }}
                             >
@@ -288,10 +332,13 @@ const CheckoutPage: React.FC = () => {
                       </div>
                     </div>
                     <p className={styles.qrBoxNote}>
-                      Chuyển khoản xong bấm <strong>"Xác nhận đặt hàng"</strong> — quán sẽ xác nhận và bắt đầu pha chế ngay khi nhận được tiền.
+                      {transferStatus === 'PAID'
+                        ? 'Đã nhận được chuyển khoản — bấm "Đã chuyển khoản — Xác nhận đặt hàng" để hoàn tất đơn.'
+                        : 'Chuyển khoản đúng nội dung ở trên — hệ thống sẽ tự động xác nhận, nút đặt hàng sẽ mở khoá ngay khi nhận được tiền.'}
                     </p>
                   </div>
-                )}
+                  )
+                })()}
               </div>
 
               {/* Mã giảm giá */}
@@ -372,12 +419,15 @@ const CheckoutPage: React.FC = () => {
                 block
                 size="large"
                 loading={submitting}
+                disabled={paymentMethod === 'transfer' && transferStatus !== 'PAID'}
                 className={styles.submitBtn}
               >
                 {submitting
                   ? 'Đang xử lý...'
                   : paymentMethod === 'transfer'
-                    ? `Đã chuyển khoản — Xác nhận đặt hàng`
+                    ? transferStatus === 'PAID'
+                      ? 'Đã chuyển khoản — Xác nhận đặt hàng'
+                      : 'Đang chờ xác nhận chuyển khoản...'
                     : `Xác nhận đặt hàng — ${payableTotal.toLocaleString('vi-VN')}đ`}
               </Button>
             </Form>

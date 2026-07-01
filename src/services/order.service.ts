@@ -19,6 +19,7 @@ export interface CheckoutPayload {
   promotionDiscountPercent?: number
   orderType: 'dine-in' | 'takeaway' | 'delivery'
   customerId?: string
+  pendingTransferCode?: string
 }
 
 export interface ApiOrder {
@@ -66,6 +67,7 @@ export const orderService = {
       subtotal: payload.subtotal,
       discountAmount: payload.discountAmount,
       totalAmount: payload.total,
+      pendingTransferCode: payload.pendingTransferCode,
       note: JSON.stringify(Object.fromEntries(
         Object.entries({
           paymentMethod: payload.values.payment,
