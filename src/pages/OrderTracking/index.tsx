@@ -126,7 +126,7 @@ const OrderTracking: React.FC = () => {
                 className={styles.qrImage}
               />
               <div className={styles.qrInfo}>
-                <div className={styles.qrBank}>TPBank</div>
+                <div className={styles.qrBank}>ACB</div>
                 <div className={styles.qrField}>
                   <span className={styles.qrLabel}>Số tài khoản</span>
                   <span className={styles.qrValue}>

@@ -242,7 +242,7 @@ const CheckoutPage: React.FC = () => {
                         className={styles.qrBoxImage}
                       />
                       <div className={styles.qrBoxInfo}>
-                        <div className={styles.qrBoxBank}>TPBank</div>
+                        <div className={styles.qrBoxBank}>ACB</div>
                         <div className={styles.qrBoxField}>
                           <span className={styles.qrBoxLabel}>Số tài khoản</span>
                           <span className={styles.qrBoxValue}>
