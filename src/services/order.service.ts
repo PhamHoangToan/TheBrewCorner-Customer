@@ -49,6 +49,13 @@ const orderTypeToApi = (orderType: CheckoutPayload['orderType']) => {
   return 'TAKE_AWAY'
 }
 
+// Chọn bàn từ danh sách bàn trống thật (mã đầy đủ, VD "BAN-003") gửi thẳng lên BE.
+// QR quét tại bàn vẫn lưu số thô (VD "001") — thêm tiền tố "BAN-" như trước để tương thích ngược.
+const toTableCode = (tableNumber?: string) => {
+  if (!tableNumber) return undefined
+  return tableNumber.toUpperCase().startsWith('BAN-') ? tableNumber : `BAN-${tableNumber}`
+}
+
 export const readOrderNote = (note?: string | null) => {
   if (!note) return {}
   try {
@@ -62,7 +69,7 @@ export const orderService = {
   create: (payload: CheckoutPayload) =>
     apiClient.post<ApiOrder>('/orders', {
       type: orderTypeToApi(payload.orderType),
-      table: payload.values.tableNumber ? `BAN-${payload.values.tableNumber}` : undefined,
+      table: toTableCode(payload.values.tableNumber),
       customerId: payload.customerId,
       subtotal: payload.subtotal,
       discountAmount: payload.discountAmount,

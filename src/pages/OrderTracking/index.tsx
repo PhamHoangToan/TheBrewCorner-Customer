@@ -197,7 +197,7 @@ const OrderTracking: React.FC = () => {
         <div className={styles.card}>
           <h3 className={styles.cardTitle}>Chi tiết đơn</h3>
           <div className={styles.orderTypeBadge}>
-            {orderType === 'dine-in'  && `🍽️ Dùng tại bàn ${note.tableNumber ?? order.table?.name ?? ''}`}
+            {orderType === 'dine-in'  && `🍽️ Dùng tại bàn ${order.table?.name ?? note.tableNumber ?? ''}`}
             {orderType === 'takeaway' && '🛍️ Mang về'}
             {orderType === 'delivery' && `🛵 Giao đến: ${note.customerAddress ?? ''}`}
           </div>

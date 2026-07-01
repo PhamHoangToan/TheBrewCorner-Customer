@@ -233,7 +233,7 @@ const OrderStatus: React.FC = () => {
             <div className={styles.card}>
               <h2 className={styles.cardTitle}>Chi tiết đơn</h2>
               <div className={styles.orderTypeBadge}>
-                {orderType === 'dine-in'  && `🍽️ Dùng tại bàn ${note.tableNumber ?? order.table?.name ?? ''}`}
+                {orderType === 'dine-in'  && `🍽️ Dùng tại bàn ${order.table?.name ?? note.tableNumber ?? ''}`}
                 {orderType === 'takeaway' && '🛍️ Mang về'}
                 {orderType === 'delivery' && `🛵 Giao đến: ${note.customerAddress ?? ''}`}
               </div>

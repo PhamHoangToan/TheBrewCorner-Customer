@@ -7,6 +7,7 @@ import { guestOrdersService } from '../../services/guest-orders.service'
 import { orderService } from '../../services/order.service'
 import { pendingTransferService } from '../../services/pending-transfer.service'
 import { promotionService, type Promotion } from '../../services/promotion.service'
+import { tableService, type ApiTable } from '../../services/table.service'
 import { useCustomerAuthStore } from '../../store/auth.store'
 import { useCartStore, useCartTotal } from '../../store/cart.store'
 import { buildVietQRUrl, VIETQR_BANK } from '../../config/vietqr'
@@ -20,11 +21,6 @@ interface CheckoutForm {
   note?: string
   payment: 'cash' | 'transfer'
 }
-
-const TABLE_OPTIONS = Array.from({ length: 20 }, (_, i) => ({
-  value: `${String(i + 1).padStart(3, '0')}`,
-  label: `Bàn ${String(i + 1).padStart(3, '0')}`,
-}))
 
 interface AppliedPromotion {
   code: string
@@ -48,6 +44,8 @@ const CheckoutPage: React.FC = () => {
   const [validPromotions, setValidPromotions] = useState<Promotion[]>([])
   const [promoCode, setPromoCode] = useState('')
   const [appliedPromotion, setAppliedPromotion] = useState<AppliedPromotion | null>(null)
+  const [availableTables, setAvailableTables] = useState<ApiTable[]>([])
+  const [tablesLoading, setTablesLoading] = useState(false)
   const total = useCartTotal()
   const discountAmount = appliedPromotion?.discountAmount ?? 0
   const payableTotal = Math.max(total - discountAmount, 0)
@@ -73,6 +71,24 @@ const CheckoutPage: React.FC = () => {
       .catch(() => { if (mounted) setValidPromotions([]) })
     return () => { mounted = false }
   }, [total])
+
+  useEffect(() => {
+    if (orderType !== 'dine-in') return
+    let mounted = true
+    setTablesLoading(true)
+    tableService.listAvailable()
+      .then((res) => { if (mounted) setAvailableTables(res.items ?? []) })
+      .catch(() => { if (mounted) setAvailableTables([]) })
+      .finally(() => { if (mounted) setTablesLoading(false) })
+    return () => { mounted = false }
+  }, [orderType])
+
+  // Khách quét mã QR tại bàn: cart lưu sẵn số bàn thô (VD "001") — khớp với mã bàn thật vừa tải
+  useEffect(() => {
+    if (!tableNumber || availableTables.length === 0) return
+    const match = availableTables.find((t) => t.code.replace(/^BAN-/i, '') === tableNumber)
+    if (match) form.setFieldValue('tableNumber', match.code)
+  }, [availableTables, tableNumber, form])
 
   useEffect(() => {
     setAppliedPromotion((current) => {
@@ -203,7 +219,6 @@ const CheckoutPage: React.FC = () => {
               onFinish={handleSubmit}
               initialValues={{
                 payment: 'cash',
-                tableNumber: tableNumber ?? undefined,
                 name: user?.name,
                 phone: user?.phone ?? undefined,
                 address: user?.address ?? undefined,
@@ -241,7 +256,13 @@ const CheckoutPage: React.FC = () => {
                 </div>
                 {orderType === 'dine-in' && (
                   <Form.Item name="tableNumber" label="Số bàn" rules={[{ required: true, message: 'Vui lòng chọn bàn' }]}>
-                    <Select size="large" options={TABLE_OPTIONS} placeholder="Chọn bàn" />
+                    <Select
+                      size="large"
+                      loading={tablesLoading}
+                      placeholder={tablesLoading ? 'Đang tải danh sách bàn...' : 'Chọn bàn'}
+                      notFoundContent={tablesLoading ? 'Đang tải...' : 'Hiện không còn bàn trống'}
+                      options={availableTables.map((t) => ({ value: t.code, label: t.name }))}
+                    />
                   </Form.Item>
                 )}
               </div>
