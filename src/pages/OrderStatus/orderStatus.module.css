@@ -1,0 +1,307 @@
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes livePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.6); opacity: 0.4; }
+}
+
+.page { min-height: 100vh; background: var(--cream-bg, #FFF8F2); }
+
+/* Hero */
+.hero {
+  background: linear-gradient(145deg, #3f1f12 0%, #662C21 60%, #7a3020 100%);
+  padding: 60px 24px 72px;
+  position: relative;
+  overflow: hidden;
+}
+
+.heroInner {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.heroKicker {
+  display: inline-block;
+  background: rgba(255,255,255,0.12);
+  color: #FEE1BF;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+  animation: fadeSlideUp 0.6s ease 0.1s both;
+}
+
+.heroTitle {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 36px;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 10px;
+  animation: fadeSlideUp 0.7s ease 0.2s both;
+}
+
+.heroDesc {
+  color: rgba(254,225,191,0.8);
+  font-size: 15px;
+  margin-bottom: 28px;
+  animation: fadeSlideUp 0.7s ease 0.3s both;
+}
+
+.searchRow {
+  display: flex;
+  gap: 12px;
+  max-width: 520px;
+  margin: 0 auto;
+  animation: fadeSlideUp 0.7s ease 0.4s both;
+}
+
+.searchInput {
+  border-radius: 12px !important;
+  height: 48px !important;
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
+}
+
+.searchBtn {
+  background: #FEE1BF !important;
+  border-color: #FEE1BF !important;
+  color: #662C21 !important;
+  font-family: 'Montserrat', sans-serif !important;
+  font-weight: 700 !important;
+  height: 48px !important;
+  padding: 0 28px !important;
+  border-radius: 12px !important;
+  white-space: nowrap !important;
+  transition: opacity 0.2s !important;
+}
+.searchBtn:hover { opacity: 0.88 !important; }
+
+/* Content */
+.content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.stateBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 80px 0;
+}
+
+.newOrderBtn {
+  background: #662C21 !important;
+  border-color: #662C21 !important;
+  font-family: 'Montserrat', sans-serif !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+}
+
+/* Order sections */
+.orderSection {
+  margin-bottom: 32px;
+  animation: fadeSlideUp 0.55s var(--ease-spring, cubic-bezier(0.22,1,0.36,1)) both;
+}
+
+.sectionTitle {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: #2D1A0E;
+  margin-bottom: 14px;
+}
+
+.orderList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.orderItem {
+  background: #fff;
+  border: 1.5px solid #f0e8e4;
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, transform 0.2s, background 0.2s;
+  width: 100%;
+}
+.orderItem:hover { border-color: #662C21; transform: translateX(4px); }
+
+.orderItemActive {
+  border-color: #662C21 !important;
+  background: #fff7f0 !important;
+}
+
+.orderItemLeft { display: flex; flex-direction: column; gap: 4px; }
+
+.orderCode {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #2D1A0E;
+}
+
+.orderStatus { font-size: 12px; font-weight: 700; }
+
+.orderAmt {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: #662C21;
+}
+
+/* Result grid */
+.resultGrid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.4fr;
+  gap: 20px;
+  align-items: start;
+  animation: fadeSlideUp 0.55s var(--ease-spring, cubic-bezier(0.22,1,0.36,1)) 0.1s both;
+}
+
+.card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 12px rgba(102,44,33,0.07);
+  padding: 24px;
+}
+
+.cardMeta {
+  font-size: 11px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #9a6a55;
+  margin-bottom: 10px;
+}
+
+.bigCode {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  color: #2D1A0E;
+  margin-bottom: 12px;
+  word-break: break-all;
+}
+
+.statusPill {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Montserrat', sans-serif;
+  margin-bottom: 14px;
+}
+
+.liveChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.liveDot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: inline-block;
+  animation: livePulse 1.6s ease-in-out infinite;
+}
+
+.cardTitle {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: #2D1A0E;
+  margin-bottom: 18px;
+}
+
+.orderTypeBadge {
+  display: inline-flex;
+  align-items: center;
+  background: #FFF1E6;
+  color: #662C21;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+
+.customerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #5a3a2a;
+  margin-bottom: 16px;
+}
+
+.orderRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #5a3a2a;
+  margin-bottom: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid #faf3ef;
+}
+.orderRow:last-of-type { border-bottom: none; }
+
+.divider {
+  height: 1px;
+  background: #f5ede8;
+  margin: 12px 0;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #2D1A0E;
+}
+
+.totalAmt {
+  font-size: 20px;
+  font-weight: 900;
+  color: #662C21;
+}
+
+@media (max-width: 860px) {
+  .resultGrid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .hero { padding: 40px 16px 48px; }
+  .heroTitle { font-size: 26px; }
+  .content { padding: 24px 14px 56px; }
+  .searchRow { flex-direction: column; }
+  .searchBtn { width: 100%; }
+  .card { padding: 18px; }
+  .orderItem { padding: 12px 14px; }
+}

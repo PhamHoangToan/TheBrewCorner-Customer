@@ -1,0 +1,146 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Lato:wght@400;700;900&display=swap');
+
+/* ========================
+   DESIGN TOKENS
+   ======================== */
+:root {
+  /* Brand */
+  --brand:        #662C21;
+  --brand-hover:  #7a3527;
+  --brand-light:  #8B3A2A;
+  --bg:           #DDBEA9;
+  --cream:        #FEE1BF;
+  --cream-light:  #FFF1E6;
+  --cream-bg:     #FFF8F2;
+  --dark:         #2D1A0E;
+  --dark-mid:     #392315;
+  --text:         #301e1e;
+  --text-muted:   #7a5040;
+
+  /* Animation easings */
+  --ease-spring:  cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-smooth:  cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out:     cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out:  cubic-bezier(0.4, 0, 0.6, 1);
+
+  /* Animation durations */
+  --dur-xs:   120ms;
+  --dur-fast: 200ms;
+  --dur-mid:  350ms;
+  --dur-slow: 550ms;
+
+  /* Shadows */
+  --shadow-sm:  0 2px 8px rgba(102,44,33,0.07);
+  --shadow-md:  0 4px 20px rgba(102,44,33,0.1);
+  --shadow-lg:  0 12px 40px rgba(102,44,33,0.15);
+  --shadow-xl:  0 24px 64px rgba(102,44,33,0.2);
+
+  /* Radii */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+}
+
+/* ========================
+   RESET
+   ======================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Lato', sans-serif;
+  background: #fff;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* ========================
+   SHARED KEYFRAMES
+   ======================== */
+@keyframes g-fadeUp {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes g-fadeDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes g-fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes g-scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes g-slideRight {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes g-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.06); }
+}
+
+@keyframes g-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes g-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+/* ========================
+   SCROLL REVEAL UTILITY
+   ======================== */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.7s var(--ease-spring),
+    transform 0.7s var(--ease-spring);
+}
+[data-reveal].revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ========================
+   ANT DESIGN OVERRIDES
+   ======================== */
+.ant-btn {
+  transition:
+    background var(--dur-fast) var(--ease-smooth),
+    border-color var(--dur-fast) var(--ease-smooth),
+    box-shadow var(--dur-fast) var(--ease-smooth),
+    transform var(--dur-fast) var(--ease-spring) !important;
+}
+
+.ant-input,
+.ant-input-affix-wrapper {
+  border-radius: var(--radius-sm) !important;
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast) !important;
+}
+
+.ant-form-item-label > label {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--dark-mid);
+}
