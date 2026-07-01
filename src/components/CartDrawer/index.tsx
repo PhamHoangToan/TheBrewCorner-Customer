@@ -1,24 +1,24 @@
 import React from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { Button } from 'antd'
 import { CloseOutlined, DeleteOutlined, ShoppingCartOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useCartStore, useCartTotal } from '../../store/cart.store'
 import styles from './cartDrawer.module.css'
 
-const backdrop = {
+const backdrop: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1 },
 }
 
-const drawer = {
+const drawer: Variants = {
   hidden:  { x: '100%' },
   visible: { x: 0, transition: { type: 'spring', damping: 28, stiffness: 280 } },
   exit:    { x: '100%', transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } },
 }
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden:  { opacity: 0, x: 32 },
   visible: (i: number) => ({
     opacity: 1, x: 0,
