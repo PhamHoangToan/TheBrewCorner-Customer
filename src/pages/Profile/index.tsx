@@ -4,9 +4,21 @@ import { EnvironmentOutlined, MailOutlined, PhoneOutlined, SaveOutlined } from '
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../../components/Navbar'
 import Footer from '../../components/Footer'
-import { userService } from '../../services/user.service'
+import { userService, type LoyaltyInfo } from '../../services/user.service'
 import { useCustomerAuthStore } from '../../store/auth.store'
 import styles from './profile.module.css'
+
+const TIER_LABEL: Record<LoyaltyInfo['membershipTier'], string> = {
+  BASIC: 'Thành viên',
+  SILVER: 'Bạc',
+  GOLD: 'Vàng',
+}
+
+const TXN_LABEL: Record<LoyaltyInfo['transactions'][number]['type'], string> = {
+  EARN: 'Tích điểm',
+  REDEEM: 'Đổi điểm',
+  ADJUST: 'Điều chỉnh',
+}
 
 interface ProfileForm {
   name: string
@@ -24,6 +36,7 @@ const ProfilePage: React.FC = () => {
   const user = useCustomerAuthStore((state) => state.user)
   const updateUser = useCustomerAuthStore((state) => state.updateUser)
   const navigate = useNavigate()
+  const [loyalty, setLoyalty] = useState<LoyaltyInfo | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -36,6 +49,7 @@ const ProfilePage: React.FC = () => {
       phone:   user.phone ?? '',
       address: user.address ?? '',
     })
+    userService.getLoyalty(user.id).then(setLoyalty).catch(() => setLoyalty(null))
   }, [form, navigate, user])
 
   const handleSubmit = async (values: ProfileForm) => {
@@ -81,6 +95,30 @@ const ProfilePage: React.FC = () => {
       </div>
 
       <main className={styles.content}>
+        {loyalty && (
+          <div className={styles.loyaltyCard}>
+            <div className={styles.loyaltyHeader}>
+              <div>
+                <div className={styles.loyaltyPointsLabel}>Điểm tích lũy</div>
+                <div className={styles.loyaltyPoints}>{loyalty.loyaltyPoints} điểm</div>
+              </div>
+              <span className={`${styles.tierBadge} ${styles[`tier${loyalty.membershipTier}`]}`}>
+                Hạng {TIER_LABEL[loyalty.membershipTier]}
+              </span>
+            </div>
+            {loyalty.transactions.length > 0 && (
+              <div className={styles.loyaltyHistory}>
+                {loyalty.transactions.slice(0, 5).map((t) => (
+                  <div key={t.id} className={styles.loyaltyHistoryRow}>
+                    <span>{TXN_LABEL[t.type]} — {t.description ?? ''}</span>
+                    <span>{t.points > 0 ? '+' : ''}{t.points} điểm</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className={styles.panel}>
           <h2 className={styles.panelTitle}>Thông tin cá nhân</h2>
           <p className={styles.panelDesc}>Cập nhật thông tin để trải nghiệm đặt hàng tốt hơn.</p>

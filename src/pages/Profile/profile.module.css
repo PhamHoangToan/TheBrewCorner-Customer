@@ -186,6 +186,65 @@
 }
 
 /* Info card */
+.loyaltyCard {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(102, 44, 33, 0.09);
+  padding: 28px 32px;
+  margin-bottom: 20px;
+  animation: fadeSlideUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+.loyaltyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.loyaltyPoints {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 900;
+  font-size: 32px;
+  color: #662C21;
+}
+
+.loyaltyPointsLabel {
+  font-size: 12px;
+  color: #9a6a55;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tierBadge {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 6px 18px;
+  border-radius: 20px;
+}
+
+.tierBASIC  { background: #f3f4f6; color: #6b7280; }
+.tierSILVER { background: #e5e7eb; color: #4b5563; border: 1px solid #9ca3af; }
+.tierGOLD   { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+
+.loyaltyHistory {
+  margin-top: 16px;
+  border-top: 1px solid #f5ede8;
+  padding-top: 12px;
+}
+
+.loyaltyHistoryRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #5a3a2a;
+  padding: 6px 0;
+}
+
 .infoCard {
   background: #fff;
   border-radius: 16px;

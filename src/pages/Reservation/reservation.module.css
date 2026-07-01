@@ -1,0 +1,110 @@
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page {
+  min-height: 100vh;
+  background: var(--cream-bg, #FFF8F2);
+}
+
+.heroStrip {
+  background: linear-gradient(135deg, #3f1f12 0%, #662C21 100%);
+  padding: 32px 24px 36px;
+}
+
+.heroStripInner {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 32px;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  color: rgba(254,225,191,0.8);
+  font-size: 14px;
+}
+
+.content {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 36px 24px 80px;
+}
+
+.formSection {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 12px rgba(102,44,33,0.06);
+  padding: 24px 28px;
+  margin-bottom: 20px;
+  animation: fadeSlideUp 0.5s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.label {
+  display: block;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #2D1A0E;
+  margin-bottom: 6px;
+}
+
+.dateTimeInput {
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid #e6d7cd;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #2D1A0E;
+  font-family: inherit;
+}
+
+.submitBtn {
+  background: #662C21 !important;
+  border-color: #662C21 !important;
+  font-family: 'Montserrat', sans-serif !important;
+  font-weight: 700 !important;
+  height: 52px !important;
+  font-size: 15px !important;
+  border-radius: 16px !important;
+}
+
+.historyItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f5ede8;
+}
+
+.historyItem:last-child { border-bottom: none; }
+
+.historyMeta {
+  font-size: 13px;
+  color: #5a3a2a;
+}
+
+.statusBadge {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.statusPending   { background: #fff7e6; color: #d48806; }
+.statusConfirmed { background: #f0fdf4; color: #16a34a; }
+.statusCancelled { background: #fef2f2; color: #dc2626; }
+.statusCompleted { background: #eff6ff; color: #2563eb; }
+.statusNoShow    { background: #f3f4f6; color: #6b7280; }

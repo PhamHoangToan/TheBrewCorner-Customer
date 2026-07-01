@@ -59,6 +59,9 @@ const Navbar: React.FC = () => {
           <Link to="/track-order" className={`${styles.navLink} ${isActive('/track-order') ? styles.navLinkActive : ''}`}>
             Tra cứu đơn
           </Link>
+          <Link to="/reservation" className={`${styles.navLink} ${isActive('/reservation') ? styles.navLinkActive : ''}`}>
+            Đặt bàn
+          </Link>
           <button type="button" className={styles.navLink} onClick={() => goToSection('about')}>
             Giới thiệu
           </button>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button, Empty, Spin, Steps, message } from 'antd'
 import { CheckCircleFilled, ClockCircleFilled, CopyOutlined, HomeOutlined, ReloadOutlined } from '@ant-design/icons'
@@ -6,6 +6,7 @@ import Navbar from '../../components/Navbar'
 import { guestOrdersService } from '../../services/guest-orders.service'
 import { orderService, readOrderNote, type ApiOrder } from '../../services/order.service'
 import { buildVietQRUrl, VIETQR_BANK } from '../../config/vietqr'
+import { useOrderSocket } from '../../hooks/useOrderSocket'
 import styles from './orderTracking.module.css'
 
 const STEPS_DINE_IN  = ['Đã nhận đơn', 'Đang pha chế', 'Phục vụ tại bàn', 'Hoàn thành']
@@ -27,27 +28,29 @@ const OrderTracking: React.FC = () => {
   const [loading, setLoading] = useState(!state?.order)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadOrder = useCallback((silent = false) => {
     if (!id) return
-    let mounted = true
-    const loadOrder = (silent = false) => {
-      if (!silent) setLoading(true)
-      orderService.get(id)
-        .then((data) => {
-          if (!mounted) return
-          setOrder(data)
-          guestOrdersService.update(data)
-          setError(null)
-        })
-        .catch((err) => {
-          if (mounted && !silent) setError(err instanceof Error ? err.message : 'Không tìm thấy đơn hàng')
-        })
-        .finally(() => { if (mounted && !silent) setLoading(false) })
-    }
+    if (!silent) setLoading(true)
+    orderService.get(id)
+      .then((data) => {
+        setOrder(data)
+        guestOrdersService.update(data)
+        setError(null)
+      })
+      .catch((err) => {
+        if (!silent) setError(err instanceof Error ? err.message : 'Không tìm thấy đơn hàng')
+      })
+      .finally(() => { if (!silent) setLoading(false) })
+  }, [id])
+
+  useEffect(() => {
     loadOrder(!!state?.order)
-    const timer = window.setInterval(() => loadOrder(true), 5000)
-    return () => { mounted = false; window.clearInterval(timer) }
-  }, [id, state?.order])
+    // Polling 30s chỉ làm fallback — cập nhật realtime chính đến từ WebSocket (useOrderSocket bên dưới)
+    const timer = window.setInterval(() => loadOrder(true), 30000)
+    return () => window.clearInterval(timer)
+  }, [loadOrder, state?.order])
+
+  useOrderSocket(id, () => loadOrder(true))
 
   const note = readOrderNote(order?.note)
   const orderType = note.customerOrderType ?? (order?.type === 'DINE_IN' ? 'dine-in' : 'takeaway')

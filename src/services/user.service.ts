@@ -28,7 +28,21 @@ const toCustomerUser = (user: ApiUser): CustomerUser => ({
   role: 'customer',
 })
 
+export interface LoyaltyInfo {
+  loyaltyPoints: number
+  totalSpent: number
+  membershipTier: 'BASIC' | 'SILVER' | 'GOLD'
+  transactions: Array<{
+    id: string
+    points: number
+    type: 'EARN' | 'REDEEM' | 'ADJUST'
+    description?: string | null
+    createdAt: string
+  }>
+}
+
 export const userService = {
+  getLoyalty: (id: string) => apiClient.get<LoyaltyInfo>(`/users/${encodeURIComponent(id)}/loyalty`),
   updateProfile: async (id: string, payload: UpdateProfilePayload) => {
     const user = await apiClient.patch<ApiUser>(`/users/${encodeURIComponent(id)}`, {
       ...payload,
