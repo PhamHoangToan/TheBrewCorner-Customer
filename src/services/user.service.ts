@@ -6,6 +6,7 @@ export interface UpdateProfilePayload {
   email: string
   phone: string
   address?: string
+  birthday?: string
 }
 
 interface ApiUser {
@@ -15,6 +16,7 @@ interface ApiUser {
   email?: string | null
   phone?: string | null
   address?: string | null
+  birthday?: string | null
   role: 'CUSTOMER' | 'customer'
 }
 
@@ -25,6 +27,7 @@ const toCustomerUser = (user: ApiUser): CustomerUser => ({
   email: user.email,
   phone: user.phone,
   address: user.address,
+  birthday: user.birthday,
   role: 'customer',
 })
 

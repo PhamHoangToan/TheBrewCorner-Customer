@@ -20,6 +20,8 @@ export interface CheckoutPayload {
   orderType: 'dine-in' | 'takeaway' | 'delivery'
   customerId?: string
   pendingTransferCode?: string
+  redeemPoints?: number
+  voucherCode?: string
 }
 
 export interface ApiOrder {
@@ -35,8 +37,12 @@ export interface ApiOrder {
     code: string
     name: string
   } | null
+  // Nguồn sự thật thanh toán — order.status chỉ là tiến độ pha chế/phục vụ
+  invoice?: { status: string } | null
+  customerId?: string | null
   items: Array<{
     id: string
+    productId?: string
     productName: string
     quantity: number
     unitPrice: string | number
@@ -75,6 +81,8 @@ export const orderService = {
       discountAmount: payload.discountAmount,
       totalAmount: payload.total,
       pendingTransferCode: payload.pendingTransferCode,
+      redeemPoints: payload.redeemPoints,
+      voucherCode: payload.voucherCode,
       note: JSON.stringify(Object.fromEntries(
         Object.entries({
           paymentMethod: payload.values.payment,

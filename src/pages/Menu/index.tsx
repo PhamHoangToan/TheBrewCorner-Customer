@@ -6,6 +6,7 @@ import Navbar from '../../components/Navbar'
 import Footer from '../../components/Footer'
 import { PRODUCTS } from '../../data/menu'
 import { productService, type CustomerProduct } from '../../services/product.service'
+import { reviewService, type ReviewSummary } from '../../services/review.service'
 import { useCartCount, useCartStore } from '../../store/cart.store'
 import styles from './menu.module.css'
 
@@ -30,6 +31,15 @@ const MenuPage: React.FC = () => {
     return () => { mounted = false }
   }, [])
 
+  const [ratings, setRatings] = useState<Map<string, ReviewSummary>>(new Map())
+  useEffect(() => {
+    let mounted = true
+    reviewService.summary()
+      .then((items) => { if (mounted) setRatings(new Map(items.map((r) => [r.productId, r]))) })
+      .catch(() => {})
+    return () => { mounted = false }
+  }, [])
+
   const categories = useMemo(
     () => ['Tất cả', ...Array.from(new Set(products.map((p) => p.category)))],
     [products],
@@ -42,6 +52,10 @@ const MenuPage: React.FC = () => {
   })
 
   const handleAdd = (p: CustomerProduct) => {
+    if (p.soldOut) {
+      api.warning({ message: `"${p.name}" tạm hết hàng hôm nay`, placement: 'bottomRight', duration: 2 })
+      return
+    }
     addItem({ id: p.id, name: p.name, price: p.price, category: p.category })
     api.success({
       message: `Đã thêm "${p.name}"`,
@@ -95,7 +109,7 @@ const MenuPage: React.FC = () => {
 
         <div className={styles.grid}>
           {filtered.map((p) => (
-            <div key={p.id} className={styles.card}>
+            <div key={p.id} className={styles.card} style={p.soldOut ? { opacity: 0.6 } : undefined}>
               <div className={styles.cardImg}>
                 {p.imageUrl ? (
                   <img
@@ -104,27 +118,37 @@ const MenuPage: React.FC = () => {
                     alt={p.name}
                     loading="lazy"
                     referrerPolicy="no-referrer"
+                    style={p.soldOut ? { filter: 'grayscale(1)' } : undefined}
                   />
                 ) : (
                   p.emoji
                 )}
-                <div className={styles.cardOverlay}>
-                  <Button className={styles.quickAddBtn} onClick={() => handleAdd(p)}>
-                    + Thêm vào giỏ
-                  </Button>
-                </div>
+                {!p.soldOut && (
+                  <div className={styles.cardOverlay}>
+                    <Button className={styles.quickAddBtn} onClick={() => handleAdd(p)}>
+                      + Thêm vào giỏ
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className={styles.cardBody}>
                 <div className={styles.cardTags}>
+                  {p.soldOut && <Tag color="red">Hết hàng hôm nay</Tag>}
                   {p.popular && <Tag color="#662C21">Phổ biến</Tag>}
                   {p.new && <Tag color="orange">Mới</Tag>}
                 </div>
                 <div className={styles.cardName}>{p.name}</div>
+                {ratings.has(p.id) && (
+                  <div style={{ fontSize: 13, color: '#faad14', fontWeight: 600 }}>
+                    ★ {ratings.get(p.id)!.avgRating}
+                    <span style={{ color: '#999', fontWeight: 400 }}> ({ratings.get(p.id)!.count} đánh giá)</span>
+                  </div>
+                )}
                 <div className={styles.cardDesc}>{p.description}</div>
                 <div className={styles.cardFooter}>
                   <span className={styles.cardPrice}>{p.price.toLocaleString('vi-VN')}đ</span>
-                  <Button type="primary" className={styles.addBtn} onClick={() => handleAdd(p)}>
-                    + Thêm
+                  <Button type="primary" className={styles.addBtn} disabled={p.soldOut} onClick={() => handleAdd(p)}>
+                    {p.soldOut ? 'Hết hàng' : '+ Thêm'}
                   </Button>
                 </div>
               </div>

@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Form, Input, Radio, Select, Space, message } from 'antd'
-import { ArrowLeftOutlined, CheckCircleFilled, CopyOutlined, GiftOutlined, TagOutlined } from '@ant-design/icons'
+import { Button, Form, Input, InputNumber, Radio, Select, Space, message } from 'antd'
+import { ArrowLeftOutlined, CheckCircleFilled, CopyOutlined, GiftOutlined, StarFilled, TagOutlined } from '@ant-design/icons'
 import Navbar from '../../components/Navbar'
 import { guestOrdersService } from '../../services/guest-orders.service'
 import { orderService } from '../../services/order.service'
 import { pendingTransferService } from '../../services/pending-transfer.service'
 import { promotionService, type Promotion } from '../../services/promotion.service'
 import { tableService, type ApiTable } from '../../services/table.service'
+import { userService, type LoyaltyInfo } from '../../services/user.service'
+import { voucherService, type PersonalVoucher } from '../../services/voucher.service'
 import { useCustomerAuthStore } from '../../store/auth.store'
 import { useCartStore, useCartTotal } from '../../store/cart.store'
 import { buildVietQRUrl, VIETQR_BANK } from '../../config/vietqr'
@@ -32,6 +34,12 @@ interface AppliedPromotion {
 
 const discountFor = (total: number, percent: number) => Math.round((total * percent) / 100)
 
+const POINT_VALUE_VND = 500 // 1 điểm = 500đ — khớp POINT_VALUE_VND phía BE (loyalty.util.ts)
+
+// Giảm tự động theo hạng thành viên — khớp TIER_DISCOUNT_PERCENT phía BE
+const TIER_DISCOUNT_PERCENT: Record<string, number> = { BASIC: 0, SILVER: 2, GOLD: 5 }
+const TIER_LABEL: Record<string, string> = { SILVER: 'Bạc', GOLD: 'Vàng' }
+
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate()
   const [form] = Form.useForm<CheckoutForm>()
@@ -46,8 +54,29 @@ const CheckoutPage: React.FC = () => {
   const [appliedPromotion, setAppliedPromotion] = useState<AppliedPromotion | null>(null)
   const [availableTables, setAvailableTables] = useState<ApiTable[]>([])
   const [tablesLoading, setTablesLoading] = useState(false)
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0)
+  const [membershipTier, setMembershipTier] = useState<LoyaltyInfo['membershipTier']>('BASIC')
+  const [redeemPoints, setRedeemPoints] = useState(0)
+  const [myVouchers, setMyVouchers] = useState<PersonalVoucher[]>([])
+  const [voucherCode, setVoucherCode] = useState<string | null>(null)
   const total = useCartTotal()
-  const discountAmount = appliedPromotion?.discountAmount ?? 0
+  const promoDiscount = appliedPromotion?.discountAmount ?? 0
+  // Giảm tự động theo hạng thành viên (tính trên tạm tính)
+  const tierPercent = TIER_DISCOUNT_PERCENT[membershipTier] ?? 0
+  const tierDiscount = Math.round((total * tierPercent) / 100)
+  // Voucher cá nhân (sinh nhật...) — chỉ voucher còn hạn và đủ đơn tối thiểu
+  const usableVouchers = myVouchers.filter(
+    (v) => v.status === 'ACTIVE' && total >= Number(v.minOrderAmount ?? 0),
+  )
+  const selectedVoucher = usableVouchers.find((v) => v.code === voucherCode) ?? null
+  const voucherDiscount = selectedVoucher ? Math.round((total * selectedVoucher.discountPercent) / 100) : 0
+  // Điểm tối đa được dùng: không vượt số điểm đang có và không vượt phần còn phải trả
+  const maxRedeemPoints = Math.min(
+    loyaltyPoints,
+    Math.floor(Math.max(total - promoDiscount - tierDiscount - voucherDiscount, 0) / POINT_VALUE_VND),
+  )
+  const redeemValue = redeemPoints * POINT_VALUE_VND
+  const discountAmount = Math.min(total, promoDiscount + tierDiscount + voucherDiscount + redeemValue)
   const payableTotal = Math.max(total - discountAmount, 0)
 
   useEffect(() => {
@@ -62,6 +91,27 @@ const CheckoutPage: React.FC = () => {
       address: user.address ?? undefined,
     })
   }, [form, user])
+
+  useEffect(() => {
+    if (!user?.id) return
+    let mounted = true
+    userService.getLoyalty(user.id)
+      .then((info) => {
+        if (!mounted) return
+        setLoyaltyPoints(info.loyaltyPoints ?? 0)
+        setMembershipTier(info.membershipTier ?? 'BASIC')
+      })
+      .catch(() => { if (mounted) setLoyaltyPoints(0) })
+    voucherService.my(user.id)
+      .then((items) => { if (mounted) setMyVouchers(items) })
+      .catch(() => { if (mounted) setMyVouchers([]) })
+    return () => { mounted = false }
+  }, [user?.id])
+
+  // Kẹp lại số điểm đang dùng nếu giỏ hàng/khuyến mãi thay đổi làm giảm mức tối đa
+  useEffect(() => {
+    setRedeemPoints((current) => Math.min(current, maxRedeemPoints))
+  }, [maxRedeemPoints])
 
   useEffect(() => {
     let mounted = true
@@ -183,6 +233,8 @@ const CheckoutPage: React.FC = () => {
         promotionDiscountPercent: appliedPromotion?.discountPercent,
         orderType, customerId: user?.id,
         pendingTransferCode: values.payment === 'transfer' ? transferCode ?? undefined : undefined,
+        redeemPoints: redeemPoints > 0 ? redeemPoints : undefined,
+        voucherCode: selectedVoucher?.code,
       })
       guestOrdersService.save(order, user?.id)
       clearCart()
@@ -417,11 +469,75 @@ const CheckoutPage: React.FC = () => {
                 </div>
                 {appliedPromotion && (
                   <div className={styles.appliedPromo}>
-                    <span>✅ Đang áp dụng <strong>{appliedPromotion.code}</strong>: giảm {discountAmount.toLocaleString('vi-VN')}đ</span>
+                    <span>✅ Đang áp dụng <strong>{appliedPromotion.code}</strong>: giảm {promoDiscount.toLocaleString('vi-VN')}đ</span>
                     <button type="button" onClick={() => { setAppliedPromotion(null); setPromoCode('') }}>Bỏ mã</button>
                   </div>
                 )}
+                {usableVouchers.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 8, color: '#662C21' }}>🎁 Voucher của tôi</div>
+                    <Select
+                      size="large"
+                      allowClear
+                      style={{ width: '100%' }}
+                      placeholder="Chọn voucher cá nhân"
+                      value={voucherCode}
+                      onChange={(v) => setVoucherCode(v ?? null)}
+                      options={usableVouchers.map((v) => ({
+                        value: v.code,
+                        label: `${v.name} — giảm ${v.discountPercent}%`,
+                      }))}
+                    />
+                    {selectedVoucher && (
+                      <div className={styles.appliedPromo} style={{ marginTop: 10 }}>
+                        <span>🎁 <strong>{selectedVoucher.code}</strong>: giảm {voucherDiscount.toLocaleString('vi-VN')}đ</span>
+                        <button type="button" onClick={() => setVoucherCode(null)}>Bỏ voucher</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {tierDiscount > 0 && (
+                  <div className={styles.appliedPromo} style={{ marginTop: 10 }}>
+                    <span>
+                      👑 Thành viên hạng <strong>{TIER_LABEL[membershipTier] ?? membershipTier}</strong>: tự động giảm{' '}
+                      {tierPercent}% ({tierDiscount.toLocaleString('vi-VN')}đ)
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* Điểm tích lũy */}
+              {user && loyaltyPoints > 0 && (
+                <div className={styles.formSection}>
+                  <div className={styles.sectionHeader}>
+                    <div className={styles.sectionNum}><StarFilled /></div>
+                    <h3 className={styles.sectionTitle}>Điểm tích lũy</h3>
+                  </div>
+                  <p style={{ margin: '0 0 12px', color: '#7a5040' }}>
+                    Bạn đang có <strong>{loyaltyPoints.toLocaleString('vi-VN')} điểm</strong>
+                    {' '}(1 điểm = {POINT_VALUE_VND.toLocaleString('vi-VN')}đ) — dùng tối đa{' '}
+                    <strong>{maxRedeemPoints.toLocaleString('vi-VN')} điểm</strong> cho đơn này
+                  </p>
+                  <Space.Compact style={{ width: '100%' }}>
+                    <InputNumber
+                      size="large"
+                      min={0}
+                      max={maxRedeemPoints}
+                      value={redeemPoints}
+                      onChange={(v) => setRedeemPoints(Math.min(Math.max(Math.floor(Number(v ?? 0)), 0), maxRedeemPoints))}
+                      style={{ flex: 1 }}
+                      placeholder="Số điểm muốn dùng"
+                    />
+                    <Button size="large" onClick={() => setRedeemPoints(maxRedeemPoints)}>Dùng tối đa</Button>
+                  </Space.Compact>
+                  {redeemPoints > 0 && (
+                    <div className={styles.appliedPromo} style={{ marginTop: 12 }}>
+                      <span>⭐ Dùng <strong>{redeemPoints.toLocaleString('vi-VN')} điểm</strong>: giảm {redeemValue.toLocaleString('vi-VN')}đ</span>
+                      <button type="button" onClick={() => setRedeemPoints(0)}>Bỏ dùng điểm</button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Ghi chú */}
               <div className={styles.formSection}>
@@ -468,10 +584,28 @@ const CheckoutPage: React.FC = () => {
                 <span>Tạm tính</span>
                 <span>{total.toLocaleString('vi-VN')}đ</span>
               </div>
-              {discountAmount > 0 && (
+              {promoDiscount > 0 && (
                 <div className={`${styles.summaryRow} ${styles.discountRow}`}>
                   <span>Giảm giá {appliedPromotion?.code ? `(${appliedPromotion.code})` : ''}</span>
-                  <span>−{discountAmount.toLocaleString('vi-VN')}đ</span>
+                  <span>−{promoDiscount.toLocaleString('vi-VN')}đ</span>
+                </div>
+              )}
+              {tierDiscount > 0 && (
+                <div className={`${styles.summaryRow} ${styles.discountRow}`}>
+                  <span>Hạng {TIER_LABEL[membershipTier] ?? membershipTier} (−{tierPercent}%)</span>
+                  <span>−{tierDiscount.toLocaleString('vi-VN')}đ</span>
+                </div>
+              )}
+              {voucherDiscount > 0 && (
+                <div className={`${styles.summaryRow} ${styles.discountRow}`}>
+                  <span>Voucher ({selectedVoucher?.code})</span>
+                  <span>−{voucherDiscount.toLocaleString('vi-VN')}đ</span>
+                </div>
+              )}
+              {redeemValue > 0 && (
+                <div className={`${styles.summaryRow} ${styles.discountRow}`}>
+                  <span>Điểm tích lũy ({redeemPoints.toLocaleString('vi-VN')} điểm)</span>
+                  <span>−{redeemValue.toLocaleString('vi-VN')}đ</span>
                 </div>
               )}
               <div className={styles.totalRow}>

@@ -8,6 +8,7 @@ export interface CustomerUser {
   email?: string | null
   phone?: string | null
   address?: string | null
+  birthday?: string | null
   role: 'customer'
 }
 

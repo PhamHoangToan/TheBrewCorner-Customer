@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Button, Empty, Spin, Steps, message } from 'antd'
-import { CheckCircleFilled, ClockCircleFilled, CopyOutlined, HomeOutlined, ReloadOutlined } from '@ant-design/icons'
+import { Button, Empty, Input, Modal, Rate, Spin, Steps, message } from 'antd'
+import { CheckCircleFilled, ClockCircleFilled, CopyOutlined, HomeOutlined, ReloadOutlined, StarOutlined } from '@ant-design/icons'
 import Navbar from '../../components/Navbar'
 import { guestOrdersService } from '../../services/guest-orders.service'
 import { orderService, readOrderNote, type ApiOrder } from '../../services/order.service'
+import { reviewService } from '../../services/review.service'
+import { useCustomerAuthStore } from '../../store/auth.store'
 import { buildVietQRUrl, VIETQR_BANK } from '../../config/vietqr'
 import { useOrderSocket } from '../../hooks/useOrderSocket'
 import styles from './orderTracking.module.css'
@@ -27,6 +29,12 @@ const OrderTracking: React.FC = () => {
   const [order, setOrder] = useState<ApiOrder | null>(state?.order ?? null)
   const [loading, setLoading] = useState(!state?.order)
   const [error, setError] = useState<string | null>(null)
+  const user = useCustomerAuthStore((s) => s.user)
+  const [reviewedProductIds, setReviewedProductIds] = useState<Set<string>>(new Set())
+  const [reviewTarget, setReviewTarget] = useState<{ productId: string; productName: string } | null>(null)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
 
   const loadOrder = useCallback((silent = false) => {
     if (!id) return
@@ -51,6 +59,44 @@ const OrderTracking: React.FC = () => {
   }, [loadOrder, state?.order])
 
   useOrderSocket(id, () => loadOrder(true))
+
+  // Đã thanh toán = invoice PAID (nguồn sự thật) hoặc order PAID (hoàn tất trọn vẹn / dữ liệu cũ)
+  const isPaid = order?.status === 'PAID' || order?.invoice?.status === 'PAID'
+
+  // Món nào trong đơn này user đã đánh giá rồi → ẩn nút
+  useEffect(() => {
+    if (!order?.id || !user?.id || !isPaid) return
+    let mounted = true
+    reviewService.byOrder(order.id, user.id)
+      .then((items) => { if (mounted) setReviewedProductIds(new Set(items.map((r) => r.productId))) })
+      .catch(() => {})
+    return () => { mounted = false }
+  }, [order?.id, isPaid, user?.id])
+
+  const canReview = isPaid && !!user?.id && order?.customerId === user.id
+
+  const submitReview = async () => {
+    if (!reviewTarget || !order || !user) return
+    setReviewSubmitting(true)
+    try {
+      await reviewService.create({
+        orderId: order.id,
+        productId: reviewTarget.productId,
+        userId: user.id,
+        rating: reviewRating,
+        comment: reviewComment.trim() || undefined,
+      })
+      setReviewedProductIds((prev) => new Set([...prev, reviewTarget.productId]))
+      message.success(`Cảm ơn bạn đã đánh giá "${reviewTarget.productName}"!`)
+      setReviewTarget(null)
+      setReviewRating(5)
+      setReviewComment('')
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : 'Gửi đánh giá thất bại')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
 
   const note = readOrderNote(order?.note)
   const orderType = note.customerOrderType ?? (order?.type === 'DINE_IN' ? 'dine-in' : 'takeaway')
@@ -79,7 +125,7 @@ const OrderTracking: React.FC = () => {
       <div className={styles.content}>
 
         {/* Success / Pending-payment header */}
-        {note.paymentMethod === 'transfer' && order.status !== 'PAID' ? (
+        {note.paymentMethod === 'transfer' && !isPaid ? (
           <div className={`${styles.successBlock} ${styles.pendingBlock}`}>
             <div className={styles.checkWrap}>
               <ClockCircleFilled className={styles.pendingIcon} />
@@ -112,8 +158,8 @@ const OrderTracking: React.FC = () => {
           </div>
         )}
 
-        {/* VietQR payment card — chỉ hiện khi chuyển khoản + chưa PAID */}
-        {note.paymentMethod === 'transfer' && order.status !== 'PAID' && order.status !== 'CANCELLED' && (
+        {/* VietQR payment card — chỉ hiện khi chuyển khoản + chưa thanh toán */}
+        {note.paymentMethod === 'transfer' && !isPaid && order.status !== 'CANCELLED' && (
           <div className={styles.qrCard}>
             <div className={styles.qrHeader}>
               <span className={styles.qrBadge}>📱 Chuyển khoản VietQR</span>
@@ -203,7 +249,24 @@ const OrderTracking: React.FC = () => {
           </div>
           {order.items.map((item) => (
             <div key={item.id} className={styles.orderRow}>
-              <span>{item.productName} × {item.quantity}</span>
+              <span>
+                {item.productName} × {item.quantity}
+                {canReview && item.productId && (
+                  reviewedProductIds.has(item.productId) ? (
+                    <span style={{ marginLeft: 8, color: '#faad14', fontSize: 12 }}>★ Đã đánh giá</span>
+                  ) : (
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<StarOutlined />}
+                      style={{ padding: '0 4px', fontSize: 12 }}
+                      onClick={() => setReviewTarget({ productId: item.productId!, productName: item.productName })}
+                    >
+                      Đánh giá
+                    </Button>
+                  )
+                )}
+              </span>
               <span>{Number(item.totalPrice).toLocaleString('vi-VN')}đ</span>
             </div>
           ))}
@@ -223,6 +286,27 @@ const OrderTracking: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      <Modal
+        title={`Đánh giá "${reviewTarget?.productName ?? ''}"`}
+        open={!!reviewTarget}
+        onOk={submitReview}
+        onCancel={() => setReviewTarget(null)}
+        okText="Gửi đánh giá"
+        cancelText="Hủy"
+        confirmLoading={reviewSubmitting}
+      >
+        <div style={{ textAlign: 'center', margin: '16px 0' }}>
+          <Rate value={reviewRating} onChange={setReviewRating} style={{ fontSize: 32 }} />
+        </div>
+        <Input.TextArea
+          rows={3}
+          value={reviewComment}
+          onChange={(e) => setReviewComment(e.target.value)}
+          placeholder="Chia sẻ cảm nhận của bạn về món này (không bắt buộc)"
+          maxLength={500}
+        />
+      </Modal>
     </div>
   )
 }

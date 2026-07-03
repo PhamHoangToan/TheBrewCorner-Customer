@@ -9,6 +9,7 @@ export interface ApiProduct {
   unit: string
   imageUrl?: string | null
   emoji?: string | null
+  soldOutUntil?: string | null
   category?: {
     id: string
     name: string
@@ -25,6 +26,7 @@ export interface CustomerProduct {
   emoji: string
   popular?: boolean
   new?: boolean
+  soldOut?: boolean
 }
 
 const emojiFor = (category: string, fallback?: string | null) => {
@@ -52,6 +54,7 @@ export const mapProduct = (product: ApiProduct): CustomerProduct => {
     description: `${product.name} - ${product.unit}`,
     imageUrl: normalizeImageUrl(product.imageUrl),
     emoji: emojiFor(category, product.emoji),
+    soldOut: !!product.soldOutUntil && new Date(product.soldOutUntil).getTime() > Date.now(),
   }
 }
 

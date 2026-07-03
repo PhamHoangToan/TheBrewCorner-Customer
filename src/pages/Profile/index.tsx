@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Button, Form, Input, message } from 'antd'
-import { EnvironmentOutlined, MailOutlined, PhoneOutlined, SaveOutlined } from '@ant-design/icons'
+import { Button, DatePicker, Form, Input, Tag, message } from 'antd'
+import { EnvironmentOutlined, GiftOutlined, MailOutlined, PhoneOutlined, SaveOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
+import dayjs, { type Dayjs } from 'dayjs'
 import Navbar from '../../components/Navbar'
 import Footer from '../../components/Footer'
 import { userService, type LoyaltyInfo } from '../../services/user.service'
+import { voucherService, type PersonalVoucher } from '../../services/voucher.service'
 import { useCustomerAuthStore } from '../../store/auth.store'
 import styles from './profile.module.css'
 
@@ -25,6 +27,13 @@ interface ProfileForm {
   email: string
   phone: string
   address?: string
+  birthday?: Dayjs | null
+}
+
+const VOUCHER_STATUS_LABEL: Record<PersonalVoucher['status'], { label: string; color: string }> = {
+  ACTIVE: { label: 'Còn hạn', color: 'green' },
+  USED: { label: 'Đã dùng', color: 'default' },
+  EXPIRED: { label: 'Hết hạn', color: 'red' },
 }
 
 const getInitials = (name: string) =>
@@ -37,6 +46,7 @@ const ProfilePage: React.FC = () => {
   const updateUser = useCustomerAuthStore((state) => state.updateUser)
   const navigate = useNavigate()
   const [loyalty, setLoyalty] = useState<LoyaltyInfo | null>(null)
+  const [vouchers, setVouchers] = useState<PersonalVoucher[]>([])
 
   useEffect(() => {
     if (!user) {
@@ -48,8 +58,10 @@ const ProfilePage: React.FC = () => {
       email:   user.email ?? '',
       phone:   user.phone ?? '',
       address: user.address ?? '',
+      birthday: user.birthday ? dayjs(user.birthday) : null,
     })
     userService.getLoyalty(user.id).then(setLoyalty).catch(() => setLoyalty(null))
+    voucherService.my(user.id).then(setVouchers).catch(() => setVouchers([]))
   }, [form, navigate, user])
 
   const handleSubmit = async (values: ProfileForm) => {
@@ -61,6 +73,7 @@ const ProfilePage: React.FC = () => {
         email:   values.email.trim(),
         phone:   values.phone.trim(),
         address: values.address?.trim(),
+        birthday: values.birthday ? values.birthday.format('YYYY-MM-DD') : undefined,
       })
       updateUser(nextUser)
       message.success('Cập nhật thông tin thành công!')
@@ -119,6 +132,32 @@ const ProfilePage: React.FC = () => {
           </div>
         )}
 
+        {vouchers.length > 0 && (
+          <div className={styles.panel}>
+            <h2 className={styles.panelTitle}><GiftOutlined /> Voucher của tôi</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {vouchers.map((v) => (
+                <div
+                  key={v.id}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '10px 14px', border: '1px dashed #d9b8a6', borderRadius: 10,
+                    opacity: v.status === 'ACTIVE' ? 1 : 0.55,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700 }}>{v.name}</div>
+                    <div style={{ fontSize: 12, color: '#7a5040' }}>
+                      Mã <strong>{v.code}</strong> — giảm {v.discountPercent}% · HSD {dayjs(v.expiresAt).format('DD/MM/YYYY')}
+                    </div>
+                  </div>
+                  <Tag color={VOUCHER_STATUS_LABEL[v.status].color}>{VOUCHER_STATUS_LABEL[v.status].label}</Tag>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className={styles.panel}>
           <h2 className={styles.panelTitle}>Thông tin cá nhân</h2>
           <p className={styles.panelDesc}>Cập nhật thông tin để trải nghiệm đặt hàng tốt hơn.</p>
@@ -153,6 +192,20 @@ const ProfilePage: React.FC = () => {
               ]}
             >
               <Input size="large" placeholder="email@example.com" prefix={<MailOutlined />} className={styles.input} />
+            </Form.Item>
+
+            <Form.Item
+              name="birthday"
+              label="Ngày sinh"
+              extra="Nhập ngày sinh để nhận voucher giảm giá vào tháng sinh nhật 🎂"
+            >
+              <DatePicker
+                size="large"
+                style={{ width: '100%' }}
+                format="DD/MM/YYYY"
+                placeholder="Chọn ngày sinh"
+                disabledDate={(d) => d.isAfter(dayjs())}
+              />
             </Form.Item>
 
             <Form.Item name="address" label="Địa chỉ giao hàng">
