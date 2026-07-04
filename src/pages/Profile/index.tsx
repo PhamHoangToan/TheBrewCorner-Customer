@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react'
-import { Button, DatePicker, Form, Input, Tag, message } from 'antd'
-import { EnvironmentOutlined, GiftOutlined, MailOutlined, PhoneOutlined, SaveOutlined } from '@ant-design/icons'
+import { Button, DatePicker, Form, Input, InputNumber, Modal, Tag, message } from 'antd'
+import { EnvironmentOutlined, GiftOutlined, MailOutlined, PhoneOutlined, SaveOutlined, WalletOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import dayjs, { type Dayjs } from 'dayjs'
 import Navbar from '../../components/Navbar'
 import Footer from '../../components/Footer'
 import { userService, type LoyaltyInfo } from '../../services/user.service'
 import { voucherService, type PersonalVoucher } from '../../services/voucher.service'
+import { walletService, type WalletSummary } from '../../services/wallet.service'
+import { pendingTransferService } from '../../services/pending-transfer.service'
+import { buildVietQRUrl, VIETQR_BANK } from '../../config/vietqr'
 import { useCustomerAuthStore } from '../../store/auth.store'
 import styles from './profile.module.css'
 
@@ -47,6 +50,11 @@ const ProfilePage: React.FC = () => {
   const navigate = useNavigate()
   const [loyalty, setLoyalty] = useState<LoyaltyInfo | null>(null)
   const [vouchers, setVouchers] = useState<PersonalVoucher[]>([])
+  const [wallet, setWallet] = useState<WalletSummary | null>(null)
+  const [topupOpen, setTopupOpen] = useState(false)
+  const [topupAmount, setTopupAmount] = useState(100000)
+  const [topupCode, setTopupCode] = useState<string | null>(null)
+  const [topupPaid, setTopupPaid] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -62,7 +70,45 @@ const ProfilePage: React.FC = () => {
     })
     userService.getLoyalty(user.id).then(setLoyalty).catch(() => setLoyalty(null))
     voucherService.my(user.id).then(setVouchers).catch(() => setVouchers([]))
+    walletService.get(user.id).then(setWallet).catch(() => setWallet(null))
   }, [form, navigate, user])
+
+  // Poll trạng thái chuyển khoản nạp ví
+  useEffect(() => {
+    if (!topupCode || topupPaid) return
+    const timer = setInterval(async () => {
+      try {
+        const pt = await pendingTransferService.get(topupCode)
+        if (pt.status === 'PAID') { setTopupPaid(true); clearInterval(timer) }
+      } catch { /* noop */ }
+    }, 3000)
+    return () => clearInterval(timer)
+  }, [topupCode, topupPaid])
+
+  const startTopup = async () => {
+    if (!user || topupAmount < 10000) { message.warning('Số tiền nạp tối thiểu 10.000đ'); return }
+    try {
+      const pt = await pendingTransferService.create(topupAmount)
+      setTopupCode(pt.code)
+      setTopupPaid(false)
+    } catch {
+      message.error('Không tạo được yêu cầu nạp')
+    }
+  }
+
+  const confirmTopup = async () => {
+    if (!user || !topupCode) return
+    try {
+      const summary = await walletService.topupConfirm(user.id, topupCode)
+      setWallet(summary)
+      message.success('Nạp ví thành công')
+      setTopupOpen(false)
+      setTopupCode(null)
+      setTopupPaid(false)
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : 'Nạp ví thất bại')
+    }
+  }
 
   const handleSubmit = async (values: ProfileForm) => {
     if (!user) return
@@ -131,6 +177,29 @@ const ProfilePage: React.FC = () => {
             )}
           </div>
         )}
+
+        <div className={styles.panel}>
+          <h2 className={styles.panelTitle}><WalletOutlined /> Ví của tôi</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <div style={{ color: '#888', fontSize: 13 }}>Số dư</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#662c21' }}>{(wallet?.balance ?? 0).toLocaleString('vi-VN')}đ</div>
+            </div>
+            <Button type="primary" style={{ background: '#662c21', borderColor: '#662c21' }} onClick={() => { setTopupOpen(true); setTopupCode(null); setTopupPaid(false) }}>
+              Nạp ví
+            </Button>
+          </div>
+          {wallet && wallet.transactions.length > 0 && (
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {wallet.transactions.slice(0, 5).map((t) => (
+                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#555' }}>
+                  <span>{t.note ?? t.type}</span>
+                  <span style={{ color: t.amount >= 0 ? '#166534' : '#b91c1c' }}>{t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString('vi-VN')}đ</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {vouchers.length > 0 && (
           <div className={styles.panel}>
@@ -242,6 +311,44 @@ const ProfilePage: React.FC = () => {
           </div>
         </div>
       </main>
+
+      <Modal title="Nạp ví" open={topupOpen} onCancel={() => setTopupOpen(false)} footer={null}>
+        {!topupCode ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '12px 0' }}>
+            <div style={{ fontWeight: 600 }}>Số tiền nạp</div>
+            <InputNumber
+              style={{ width: '100%' }}
+              min={10000}
+              step={10000}
+              value={topupAmount}
+              onChange={(v) => setTopupAmount(Number(v ?? 0))}
+              formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={(v) => Number((v ?? '').replace(/,/g, ''))}
+              addonAfter="đ"
+            />
+            <Button type="primary" block style={{ background: '#662c21', borderColor: '#662c21' }} onClick={startTopup}>
+              Tạo mã chuyển khoản
+            </Button>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', margin: '12px 0' }}>
+            <img src={buildVietQRUrl(topupAmount, topupCode)} alt="QR" style={{ width: 220, height: 220 }} referrerPolicy="no-referrer" />
+            <div style={{ fontSize: 13, color: '#555', marginTop: 8 }}>
+              Chuyển <b>{topupAmount.toLocaleString('vi-VN')}đ</b> tới {VIETQR_BANK.accountNo} ({VIETQR_BANK.bankId})<br />
+              Nội dung: <b>TheBrewCorner {topupCode}</b>
+            </div>
+            <Button
+              type="primary"
+              block
+              disabled={!topupPaid}
+              onClick={confirmTopup}
+              style={{ marginTop: 16, background: topupPaid ? '#166534' : undefined, borderColor: topupPaid ? '#166534' : undefined }}
+            >
+              {topupPaid ? 'Đã nhận tiền — Xác nhận nạp ví' : 'Đang chờ chuyển khoản...'}
+            </Button>
+          </div>
+        )}
+      </Modal>
 
       <Footer />
     </div>

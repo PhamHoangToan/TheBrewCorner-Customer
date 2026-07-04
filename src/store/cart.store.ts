@@ -13,6 +13,9 @@ interface CartState {
   tableNumber: string | null
   orderType: 'dine-in' | 'takeaway' | 'delivery'
   isCartOpen: boolean
+  // Phiên gọi món tại bàn qua QR (self-order): id bàn thật + tên hiển thị
+  tableSessionId: string | null
+  tableSessionName: string | null
   addItem: (item: Omit<CartItem, 'qty'>) => void
   removeItem: (id: string) => void
   changeQty: (id: string, delta: number) => void
@@ -21,6 +24,8 @@ interface CartState {
   restoreForUser: (userId: string) => void
   setTable: (table: string) => void
   setOrderType: (type: CartState['orderType']) => void
+  setTableSession: (id: string, name: string) => void
+  clearTableSession: () => void
   openCart: () => void
   closeCart: () => void
 }
@@ -43,6 +48,8 @@ export const useCartStore = create<CartState>((set, get) => ({
   tableNumber: null,
   orderType: 'dine-in',
   isCartOpen: false,
+  tableSessionId: null,
+  tableSessionName: null,
 
   addItem: (item) =>
     set((s) => {
@@ -71,6 +78,8 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   setTable: (table) => set({ tableNumber: table }),
   setOrderType: (type) => set({ orderType: type }),
+  setTableSession: (id, name) => set({ tableSessionId: id, tableSessionName: name, orderType: 'dine-in' }),
+  clearTableSession: () => set({ tableSessionId: null, tableSessionName: null }),
   openCart:  () => set({ isCartOpen: true }),
   closeCart: () => set({ isCartOpen: false }),
 }))

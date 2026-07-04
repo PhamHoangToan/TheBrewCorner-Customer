@@ -17,6 +17,7 @@ const MenuPage: React.FC = () => {
   const [products, setProducts] = useState<CustomerProduct[]>(PRODUCTS)
   const [loading, setLoading] = useState(false)
   const addItem = useCartStore((s) => s.addItem)
+  const tableSessionName = useCartStore((s) => s.tableSessionName)
   const cartCount = useCartCount()
   const [api, contextHolder] = notification.useNotification()
 
@@ -69,6 +70,14 @@ const MenuPage: React.FC = () => {
     <div className={styles.page}>
       {contextHolder}
       <Navbar />
+
+      {tableSessionName && (
+        <div style={{
+          padding: '10px 16px', textAlign: 'center', background: '#166534', color: '#fff', fontWeight: 600,
+        }}>
+          🍽️ Đang gọi món tại {tableSessionName} — chọn món rồi bấm “Gọi món tại bàn” trong giỏ hàng
+        </div>
+      )}
 
       <div className={styles.hero}>
         <div className={styles.heroBg} aria-hidden>

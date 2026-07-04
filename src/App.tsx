@@ -17,6 +17,7 @@ const LoginPage     = lazy(() => import('./pages/Login'))
 const RegisterPage  = lazy(() => import('./pages/Register'))
 const ProfilePage   = lazy(() => import('./pages/Profile'))
 const ReservationPage = lazy(() => import('./pages/Reservation'))
+const TableEntryPage = lazy(() => import('./pages/TableEntry'))
 
 const fallback = (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
@@ -55,6 +56,7 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/register" element={<PageTransition><RegisterPage /></PageTransition>} />
         <Route path="/profile" element={<PageTransition><ProfilePage /></PageTransition>} />
         <Route path="/reservation" element={<PageTransition><ReservationPage /></PageTransition>} />
+        <Route path="/table/:tableId" element={<PageTransition><TableEntryPage /></PageTransition>} />
       </Routes>
     </AnimatePresence>
   )

@@ -22,6 +22,7 @@ export interface CheckoutPayload {
   pendingTransferCode?: string
   redeemPoints?: number
   voucherCode?: string
+  payWithWallet?: boolean
 }
 
 export interface ApiOrder {
@@ -83,6 +84,7 @@ export const orderService = {
       pendingTransferCode: payload.pendingTransferCode,
       redeemPoints: payload.redeemPoints,
       voucherCode: payload.voucherCode,
+      payWithWallet: payload.payWithWallet,
       note: JSON.stringify(Object.fromEntries(
         Object.entries({
           paymentMethod: payload.values.payment,
@@ -95,6 +97,18 @@ export const orderService = {
         }).filter(([, v]) => v != null && v !== ''),
       )),
       items: payload.items.map((item) => ({
+        productId: item.id,
+        quantity: item.qty,
+        unitPrice: item.price,
+        productName: item.name,
+        category: item.category,
+      })),
+    }),
+  // Khách tự gọi món tại bàn qua QR — thêm vào order đang mở của bàn hoặc tạo order mới, không thanh toán ở bước này
+  selfOrder: (tableId: string, items: CartItem[], customerId?: string) =>
+    apiClient.post<ApiOrder>(`/orders/table/${encodeURIComponent(tableId)}/self-order`, {
+      customerId,
+      items: items.map((item) => ({
         productId: item.id,
         quantity: item.qty,
         unitPrice: item.price,

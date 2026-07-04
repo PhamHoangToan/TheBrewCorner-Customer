@@ -10,6 +10,7 @@ import { promotionService, type Promotion } from '../../services/promotion.servi
 import { tableService, type ApiTable } from '../../services/table.service'
 import { userService, type LoyaltyInfo } from '../../services/user.service'
 import { voucherService, type PersonalVoucher } from '../../services/voucher.service'
+import { walletService } from '../../services/wallet.service'
 import { useCustomerAuthStore } from '../../store/auth.store'
 import { useCartStore, useCartTotal } from '../../store/cart.store'
 import { buildVietQRUrl, VIETQR_BANK } from '../../config/vietqr'
@@ -21,7 +22,7 @@ interface CheckoutForm {
   address?: string
   tableNumber?: string
   note?: string
-  payment: 'cash' | 'transfer'
+  payment: 'cash' | 'transfer' | 'wallet'
 }
 
 interface AppliedPromotion {
@@ -46,7 +47,8 @@ const CheckoutPage: React.FC = () => {
   const { items, orderType, tableNumber, clearCart } = useCartStore()
   const user = useCustomerAuthStore((state) => state.user)
   const [submitting, setSubmitting] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('cash')
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'wallet'>('cash')
+  const [walletBalance, setWalletBalance] = useState(0)
   const [transferCode, setTransferCode] = useState<string | null>(null)
   const [transferStatus, setTransferStatus] = useState<'idle' | 'creating' | 'WAITING' | 'PAID'>('idle')
   const [validPromotions, setValidPromotions] = useState<Promotion[]>([])
@@ -105,6 +107,9 @@ const CheckoutPage: React.FC = () => {
     voucherService.my(user.id)
       .then((items) => { if (mounted) setMyVouchers(items) })
       .catch(() => { if (mounted) setMyVouchers([]) })
+    walletService.get(user.id)
+      .then((w) => { if (mounted) setWalletBalance(w.balance ?? 0) })
+      .catch(() => { if (mounted) setWalletBalance(0) })
     return () => { mounted = false }
   }, [user?.id])
 
@@ -224,6 +229,10 @@ const CheckoutPage: React.FC = () => {
       message.warning('Vui lòng chuyển khoản và chờ xác nhận trước khi đặt hàng')
       return
     }
+    if (values.payment === 'wallet' && walletBalance < payableTotal) {
+      message.warning('Số dư ví không đủ')
+      return
+    }
     setSubmitting(true)
     try {
       const order = await orderService.create({
@@ -235,6 +244,7 @@ const CheckoutPage: React.FC = () => {
         pendingTransferCode: values.payment === 'transfer' ? transferCode ?? undefined : undefined,
         redeemPoints: redeemPoints > 0 ? redeemPoints : undefined,
         voucherCode: selectedVoucher?.code,
+        payWithWallet: values.payment === 'wallet',
       })
       guestOrdersService.save(order, user?.id)
       clearCart()
@@ -334,6 +344,11 @@ const CheckoutPage: React.FC = () => {
                       <Radio value="transfer" className={styles.radio}>
                         <span>📱 <strong>Chuyển khoản</strong> — QR Code ngân hàng</span>
                       </Radio>
+                      {user && (
+                        <Radio value="wallet" className={styles.radio} disabled={walletBalance < payableTotal}>
+                          <span>👛 <strong>Ví</strong> — Số dư {walletBalance.toLocaleString('vi-VN')}đ{walletBalance < payableTotal ? ' (không đủ)' : ''}</span>
+                        </Radio>
+                      )}
                     </Space>
                   </Radio.Group>
                 </Form.Item>

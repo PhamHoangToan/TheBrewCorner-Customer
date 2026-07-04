@@ -10,4 +10,5 @@ export interface ApiTable {
 export const tableService = {
   listAvailable: () =>
     apiClient.get<{ items: ApiTable[]; total: number }>('/tables', { limit: 200, status: 'AVAILABLE' }),
+  get: (id: string) => apiClient.get<ApiTable>(`/tables/${encodeURIComponent(id)}`),
 }
