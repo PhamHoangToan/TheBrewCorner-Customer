@@ -8,7 +8,7 @@ export interface CheckoutPayload {
     address?: string
     tableNumber?: string
     note?: string
-    payment: 'cash' | 'transfer'
+    payment: 'cash' | 'transfer' | 'wallet'
   }
   items: CartItem[]
   total: number

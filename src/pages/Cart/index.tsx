@@ -4,7 +4,7 @@ import { Button, Empty, Radio, Space, message } from 'antd'
 import { ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons'
 import Navbar from '../../components/Navbar'
 import { useCartStore, useCartTotal } from '../../store/cart.store'
-import { useAuthStore } from '../../store/auth.store'
+import { useCustomerAuthStore } from '../../store/auth.store'
 import { orderService } from '../../services/order.service'
 import styles from './cart.module.css'
 
@@ -14,7 +14,7 @@ const CartPage: React.FC = () => {
   const tableSessionId = useCartStore((s) => s.tableSessionId)
   const tableSessionName = useCartStore((s) => s.tableSessionName)
   const clearCart = useCartStore((s) => s.clearCart)
-  const user = useAuthStore((s) => s.user)
+  const user = useCustomerAuthStore((s) => s.user)
   const total = useCartTotal()
   const [placing, setPlacing] = useState(false)
 
