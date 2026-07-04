@@ -6,6 +6,8 @@ export interface ProductReview {
   orderId: string
   rating: number
   comment?: string | null
+  reply?: string | null
+  repliedAt?: string | null
   createdAt: string
   user?: { id: string; name: string }
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, Form, Input, message } from 'antd'
 import Navbar from '../../components/Navbar'
 import { authService } from '../../services/auth.service'
@@ -11,12 +11,15 @@ interface RegisterForm {
   phone: string
   password: string
   confirmPassword: string
+  referralCode?: string
 }
 
 const RegisterPage: React.FC = () => {
   const [form] = Form.useForm<RegisterForm>()
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const refFromQuery = params.get('ref') ?? undefined
 
   const handleSubmit = async (values: RegisterForm) => {
     setLoading(true)
@@ -26,6 +29,7 @@ const RegisterPage: React.FC = () => {
         email: values.email,
         phone: values.phone,
         password: values.password,
+        referralCode: values.referralCode?.trim() || undefined,
       })
       message.success('Đăng ký thành công, vui lòng đăng nhập')
       navigate(`/login?email=${encodeURIComponent(values.email)}`, { replace: true })
@@ -47,7 +51,7 @@ const RegisterPage: React.FC = () => {
             <p>Tạo tài khoản khách hàng để thông tin được điền sẵn khi đặt món.</p>
           </div>
 
-          <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ referralCode: refFromQuery }}>
             <Form.Item
               name="name"
               label="Họ tên"
@@ -101,6 +105,10 @@ const RegisterPage: React.FC = () => {
               ]}
             >
               <Input.Password size="large" placeholder="Nhập lại mật khẩu" />
+            </Form.Item>
+
+            <Form.Item name="referralCode" label="Mã giới thiệu (nếu có)">
+              <Input size="large" placeholder="VD: REF-A1B2C3" />
             </Form.Item>
 
             <Button

@@ -63,4 +63,8 @@ export const productService = {
     const response = await apiClient.get<{ items: ApiProduct[] }>('/products', { limit: 100 })
     return response.items.map(mapProduct)
   },
+  getById: async (id: string) => {
+    const product = await apiClient.get<ApiProduct>(`/products/${encodeURIComponent(id)}`)
+    return mapProduct(product)
+  },
 }

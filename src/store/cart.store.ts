@@ -16,7 +16,10 @@ interface CartState {
   // Phiên gọi món tại bàn qua QR (self-order): id bàn thật + tên hiển thị
   tableSessionId: string | null
   tableSessionName: string | null
-  addItem: (item: Omit<CartItem, 'qty'>) => void
+  // "Đặt ngay" từ trang chi tiết món — đơn tách biệt hoàn toàn khỏi giỏ hàng thật,
+  // Checkout ưu tiên dùng item này (nếu có) thay vì `items`, không đụng tới giỏ hàng đang có
+  buyNowItem: CartItem | null
+  addItem: (item: Omit<CartItem, 'qty'>, qty?: number) => void
   removeItem: (id: string) => void
   changeQty: (id: string, delta: number) => void
   clearCart: () => void
@@ -28,6 +31,8 @@ interface CartState {
   clearTableSession: () => void
   openCart: () => void
   closeCart: () => void
+  setBuyNow: (item: Omit<CartItem, 'qty'>, qty?: number) => void
+  clearBuyNow: () => void
 }
 
 const cartKey = (userId: string) => `cart_${userId}`
@@ -50,13 +55,14 @@ export const useCartStore = create<CartState>((set, get) => ({
   isCartOpen: false,
   tableSessionId: null,
   tableSessionName: null,
+  buyNowItem: null,
 
-  addItem: (item) =>
+  addItem: (item, qty = 1) =>
     set((s) => {
       const existing = s.items.find((c) => c.id === item.id)
       const items = existing
-        ? s.items.map((c) => c.id === item.id ? { ...c, qty: c.qty + 1 } : c)
-        : [...s.items, { ...item, qty: 1 }]
+        ? s.items.map((c) => c.id === item.id ? { ...c, qty: c.qty + qty } : c)
+        : [...s.items, { ...item, qty }]
       return { items }
     }),
 
@@ -82,6 +88,9 @@ export const useCartStore = create<CartState>((set, get) => ({
   clearTableSession: () => set({ tableSessionId: null, tableSessionName: null }),
   openCart:  () => set({ isCartOpen: true }),
   closeCart: () => set({ isCartOpen: false }),
+
+  setBuyNow: (item, qty = 1) => set({ buyNowItem: { ...item, qty } }),
+  clearBuyNow: () => set({ buyNowItem: null }),
 }))
 
 export const useCartTotal = () =>

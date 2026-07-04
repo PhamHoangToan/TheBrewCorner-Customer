@@ -14,6 +14,7 @@ const CartPage: React.FC = () => {
   const tableSessionId = useCartStore((s) => s.tableSessionId)
   const tableSessionName = useCartStore((s) => s.tableSessionName)
   const clearCart = useCartStore((s) => s.clearCart)
+  const clearBuyNow = useCartStore((s) => s.clearBuyNow)
   const user = useCustomerAuthStore((s) => s.user)
   const total = useCartTotal()
   const [placing, setPlacing] = useState(false)
@@ -154,7 +155,7 @@ const CartPage: React.FC = () => {
                     block
                     size="large"
                     className={styles.checkoutBtn}
-                    onClick={() => navigate('/checkout')}
+                    onClick={() => { clearBuyNow(); navigate('/checkout') }}
                   >
                     Tiến hành đặt hàng
                   </Button>

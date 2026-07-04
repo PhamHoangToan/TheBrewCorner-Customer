@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button, Empty, Input, Modal, Rate, Spin, Steps, message } from 'antd'
-import { CheckCircleFilled, ClockCircleFilled, CopyOutlined, HomeOutlined, ReloadOutlined, StarOutlined } from '@ant-design/icons'
+import { CheckCircleFilled, ClockCircleFilled, CopyOutlined, HomeOutlined, ReloadOutlined, StarOutlined, SyncOutlined } from '@ant-design/icons'
 import Navbar from '../../components/Navbar'
 import { guestOrdersService } from '../../services/guest-orders.service'
 import { orderService, readOrderNote, type ApiOrder } from '../../services/order.service'
@@ -9,6 +9,7 @@ import { reviewService } from '../../services/review.service'
 import { useCustomerAuthStore } from '../../store/auth.store'
 import { buildVietQRUrl, VIETQR_BANK } from '../../config/vietqr'
 import { useOrderSocket } from '../../hooks/useOrderSocket'
+import { useReorder } from '../../hooks/useReorder'
 import styles from './orderTracking.module.css'
 
 const STEPS_DINE_IN  = ['Đã nhận đơn', 'Đang pha chế', 'Phục vụ tại bàn', 'Hoàn thành']
@@ -35,6 +36,8 @@ const OrderTracking: React.FC = () => {
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewComment, setReviewComment] = useState('')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const { reorder, reordering } = useReorder()
+  const [cancelling, setCancelling] = useState(false)
 
   const loadOrder = useCallback((silent = false) => {
     if (!id) return
@@ -74,6 +77,32 @@ const OrderTracking: React.FC = () => {
   }, [order?.id, isPaid, user?.id])
 
   const canReview = isPaid && !!user?.id && order?.customerId === user.id
+  // Chỉ tự hủy được khi barista chưa bắt đầu pha chế (còn SENT), CHƯA thanh toán
+  // (đơn CK trả trước có status SENT nhưng invoice đã PAID — BE sẽ từ chối) và là đơn của chính mình
+  const canCancel = order?.status === 'SENT' && !isPaid && !!user?.id && order?.customerId === user.id
+
+  const handleCancel = () => {
+    if (!order || !user) return
+    Modal.confirm({
+      title: 'Hủy đơn hàng này?',
+      content: 'Đơn sẽ bị hủy vĩnh viễn, không thể hoàn tác.',
+      okText: 'Hủy đơn',
+      okType: 'danger',
+      cancelText: 'Đóng',
+      onOk: async () => {
+        setCancelling(true)
+        try {
+          const updated = await orderService.cancel(order.id, user.id)
+          setOrder(updated)
+          message.success('Đã hủy đơn hàng')
+        } catch (err) {
+          message.error(err instanceof Error ? err.message : 'Không hủy được đơn này')
+        } finally {
+          setCancelling(false)
+        }
+      },
+    })
+  }
 
   const submitReview = async () => {
     if (!reviewTarget || !order || !user) return
@@ -284,6 +313,14 @@ const OrderTracking: React.FC = () => {
           <Button size="large" icon={<ReloadOutlined />} className={styles.menuBtn} onClick={() => navigate('/menu')}>
             Đặt thêm
           </Button>
+          <Button size="large" icon={<SyncOutlined />} loading={reordering} className={styles.menuBtn} onClick={() => order && reorder(order)}>
+            Đặt lại đơn này
+          </Button>
+          {canCancel && (
+            <Button danger size="large" loading={cancelling} className={styles.menuBtn} onClick={handleCancel}>
+              Hủy đơn
+            </Button>
+          )}
         </div>
       </div>
 

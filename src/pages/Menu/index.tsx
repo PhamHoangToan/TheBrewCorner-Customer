@@ -118,7 +118,12 @@ const MenuPage: React.FC = () => {
 
         <div className={styles.grid}>
           {filtered.map((p) => (
-            <div key={p.id} className={styles.card} style={p.soldOut ? { opacity: 0.6 } : undefined}>
+            <div
+              key={p.id}
+              className={styles.card}
+              style={{ ...(p.soldOut ? { opacity: 0.6 } : undefined), cursor: 'pointer' }}
+              onClick={() => navigate(`/product/${p.id}`)}
+            >
               <div className={styles.cardImg}>
                 {p.imageUrl ? (
                   <img
@@ -134,7 +139,7 @@ const MenuPage: React.FC = () => {
                 )}
                 {!p.soldOut && (
                   <div className={styles.cardOverlay}>
-                    <Button className={styles.quickAddBtn} onClick={() => handleAdd(p)}>
+                    <Button className={styles.quickAddBtn} onClick={(e) => { e.stopPropagation(); handleAdd(p) }}>
                       + Thêm vào giỏ
                     </Button>
                   </div>
@@ -156,7 +161,7 @@ const MenuPage: React.FC = () => {
                 <div className={styles.cardDesc}>{p.description}</div>
                 <div className={styles.cardFooter}>
                   <span className={styles.cardPrice}>{p.price.toLocaleString('vi-VN')}đ</span>
-                  <Button type="primary" className={styles.addBtn} disabled={p.soldOut} onClick={() => handleAdd(p)}>
+                  <Button type="primary" className={styles.addBtn} disabled={p.soldOut} onClick={(e) => { e.stopPropagation(); handleAdd(p) }}>
                     {p.soldOut ? 'Hết hàng' : '+ Thêm'}
                   </Button>
                 </div>

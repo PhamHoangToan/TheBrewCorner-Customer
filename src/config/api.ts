@@ -52,11 +52,25 @@ const normalizeApiError = (raw: string, status: number) => {
   return friendlyMessages[message] ?? (message || `Yeu cau khong thanh cong (${status})`)
 }
 
+// Đọc trực tiếp localStorage (không import store Zustand) để tránh vòng lặp import
+// (auth.store cũng có thể cần gọi api trong tương lai).
+const readToken = (): string | null => {
+  try {
+    const raw = localStorage.getItem('thebrewcorner_customer_auth')
+    if (!raw) return null
+    return (JSON.parse(raw) as { token?: string }).token ?? null
+  } catch {
+    return null
+  }
+}
+
 const request = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
+  const token = readToken()
   const response = await fetch(buildUrl(path, options.params), {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   })

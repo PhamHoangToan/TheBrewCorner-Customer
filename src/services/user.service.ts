@@ -44,8 +44,15 @@ export interface LoyaltyInfo {
   }>
 }
 
+export interface ReferralInfo {
+  referralCode: string | null
+  totalReferred: number
+  totalBonusEarned: number
+}
+
 export const userService = {
   getLoyalty: (id: string) => apiClient.get<LoyaltyInfo>(`/users/${encodeURIComponent(id)}/loyalty`),
+  getReferral: (id: string) => apiClient.get<ReferralInfo>(`/users/${encodeURIComponent(id)}/referral`),
   updateProfile: async (id: string, payload: UpdateProfilePayload) => {
     const user = await apiClient.patch<ApiUser>(`/users/${encodeURIComponent(id)}`, {
       ...payload,

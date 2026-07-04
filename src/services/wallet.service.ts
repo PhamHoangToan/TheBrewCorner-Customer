@@ -11,10 +11,14 @@ export interface WalletTransaction {
 export interface WalletSummary {
   balance: number
   transactions: WalletTransaction[]
+  total: number
+  page: number
+  limit: number
 }
 
 export const walletService = {
-  get: (userId: string) => apiClient.get<WalletSummary>(`/wallets/${encodeURIComponent(userId)}`),
+  get: (userId: string, page = 1, limit = 20) =>
+    apiClient.get<WalletSummary>(`/wallets/${encodeURIComponent(userId)}`, { page, limit }),
   topupConfirm: (userId: string, code: string) =>
     apiClient.post<WalletSummary>(`/wallets/${encodeURIComponent(userId)}/topup-confirm`, { code }),
 }

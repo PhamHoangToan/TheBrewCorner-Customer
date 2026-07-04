@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { Button, DatePicker, Form, Input, InputNumber, Modal, Tag, message } from 'antd'
-import { EnvironmentOutlined, GiftOutlined, MailOutlined, PhoneOutlined, SaveOutlined, WalletOutlined } from '@ant-design/icons'
+import { CopyOutlined, EnvironmentOutlined, GiftOutlined, MailOutlined, PhoneOutlined, SaveOutlined, ShareAltOutlined, WalletOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import dayjs, { type Dayjs } from 'dayjs'
 import Navbar from '../../components/Navbar'
 import Footer from '../../components/Footer'
-import { userService, type LoyaltyInfo } from '../../services/user.service'
+import { userService, type LoyaltyInfo, type ReferralInfo } from '../../services/user.service'
 import { voucherService, type PersonalVoucher } from '../../services/voucher.service'
 import { walletService, type WalletSummary } from '../../services/wallet.service'
 import { pendingTransferService } from '../../services/pending-transfer.service'
@@ -49,6 +49,7 @@ const ProfilePage: React.FC = () => {
   const updateUser = useCustomerAuthStore((state) => state.updateUser)
   const navigate = useNavigate()
   const [loyalty, setLoyalty] = useState<LoyaltyInfo | null>(null)
+  const [referral, setReferral] = useState<ReferralInfo | null>(null)
   const [vouchers, setVouchers] = useState<PersonalVoucher[]>([])
   const [wallet, setWallet] = useState<WalletSummary | null>(null)
   const [topupOpen, setTopupOpen] = useState(false)
@@ -69,6 +70,7 @@ const ProfilePage: React.FC = () => {
       birthday: user.birthday ? dayjs(user.birthday) : null,
     })
     userService.getLoyalty(user.id).then(setLoyalty).catch(() => setLoyalty(null))
+    userService.getReferral(user.id).then(setReferral).catch(() => setReferral(null))
     voucherService.my(user.id).then(setVouchers).catch(() => setVouchers([]))
     walletService.get(user.id).then(setWallet).catch(() => setWallet(null))
   }, [form, navigate, user])
@@ -107,6 +109,17 @@ const ProfilePage: React.FC = () => {
       setTopupPaid(false)
     } catch (err) {
       message.error(err instanceof Error ? err.message : 'Nạp ví thất bại')
+    }
+  }
+
+  const shareReferral = () => {
+    if (!referral?.referralCode) return
+    const link = `${window.location.origin}/register?ref=${referral.referralCode}`
+    if (navigator.share) {
+      navigator.share({ title: 'The Brew Corner', text: `Đăng ký với mã ${referral.referralCode} để cùng nhận điểm thưởng!`, url: link }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(link)
+      message.success('Đã sao chép link giới thiệu')
     }
   }
 
@@ -179,7 +192,12 @@ const ProfilePage: React.FC = () => {
         )}
 
         <div className={styles.panel}>
-          <h2 className={styles.panelTitle}><WalletOutlined /> Ví của tôi</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 className={styles.panelTitle}><WalletOutlined /> Ví của tôi</h2>
+            {wallet && wallet.transactions.length > 0 && (
+              <Button type="link" style={{ padding: 0 }} onClick={() => navigate('/wallet/history')}>Xem tất cả</Button>
+            )}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <div style={{ color: '#888', fontSize: 13 }}>Số dư</div>
@@ -200,6 +218,26 @@ const ProfilePage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {referral?.referralCode && (
+          <div className={styles.panel}>
+            <h2 className={styles.panelTitle}><ShareAltOutlined /> Giới thiệu bạn bè</h2>
+            <p className={styles.panelDesc}>Chia sẻ mã của bạn — cả hai cùng nhận điểm thưởng khi bạn mới thanh toán đơn đầu tiên.</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div style={{ color: '#888', fontSize: 13 }}>Mã giới thiệu của bạn</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#662c21' }}>{referral.referralCode}</div>
+              </div>
+              <Button icon={<CopyOutlined />} style={{ background: '#662c21', borderColor: '#662c21', color: '#fff' }} onClick={shareReferral}>
+                Chia sẻ
+              </Button>
+            </div>
+            <div style={{ marginTop: 12, display: 'flex', gap: 24, fontSize: 13, color: '#555' }}>
+              <span>Đã giới thiệu: <b>{referral.totalReferred}</b> người</span>
+              <span>Điểm thưởng nhận được: <b>{referral.totalBonusEarned}</b> điểm</span>
+            </div>
+          </div>
+        )}
 
         {vouchers.length > 0 && (
           <div className={styles.panel}>

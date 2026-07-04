@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Button, Empty, Input, Modal, Rate, Spin, Steps, message } from 'antd'
-import { SearchOutlined, StarOutlined } from '@ant-design/icons'
+import { SearchOutlined, StarOutlined, SyncOutlined } from '@ant-design/icons'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Navbar from '../../components/Navbar'
 import Footer from '../../components/Footer'
@@ -8,6 +8,7 @@ import { guestOrdersService, type GuestOrder } from '../../services/guest-orders
 import { orderService, readOrderNote, type ApiOrder } from '../../services/order.service'
 import { reviewService } from '../../services/review.service'
 import { useCustomerAuthStore } from '../../store/auth.store'
+import { useReorder } from '../../hooks/useReorder'
 import styles from './orderStatus.module.css'
 
 const STEPS_DINE_IN  = ['Đã nhận đơn', 'Đang pha chế', 'Phục vụ tại bàn', 'Hoàn thành']
@@ -55,6 +56,8 @@ const OrderStatus: React.FC = () => {
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewComment, setReviewComment] = useState('')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const { reorder, reordering } = useReorder()
+  const [cancelling, setCancelling] = useState(false)
 
   useEffect(() => {
     if (!user) { setAccountOrders([]); setGuestOrders(guestOrdersService.list()); return }
@@ -107,6 +110,32 @@ const OrderStatus: React.FC = () => {
   // Đã thanh toán = invoice PAID (nguồn sự thật) hoặc order PAID (hoàn tất trọn vẹn / dữ liệu cũ)
   const isPaid = order?.status === 'PAID' || order?.invoice?.status === 'PAID'
   const canReview = isPaid && !!user?.id && order?.customerId === user.id
+  // !isPaid: đơn CK trả trước có status SENT nhưng invoice đã PAID — không cho tự hủy
+  const canCancel = order?.status === 'SENT' && !isPaid && !!user?.id && order?.customerId === user.id
+
+  const handleCancel = () => {
+    if (!order || !user) return
+    Modal.confirm({
+      title: 'Hủy đơn hàng này?',
+      content: 'Đơn sẽ bị hủy vĩnh viễn, không thể hoàn tác.',
+      okText: 'Hủy đơn',
+      okType: 'danger',
+      cancelText: 'Đóng',
+      onOk: async () => {
+        setCancelling(true)
+        try {
+          const updated = await orderService.cancel(order.id, user.id)
+          setOrder(updated)
+          setAccountOrders((prev) => prev.map((o) => o.id === updated.id ? updated : o))
+          message.success('Đã hủy đơn hàng')
+        } catch (err) {
+          message.error(err instanceof Error ? err.message : 'Không hủy được đơn này')
+        } finally {
+          setCancelling(false)
+        }
+      },
+    })
+  }
 
   // Món nào trong đơn đang xem user đã đánh giá rồi → ẩn nút
   useEffect(() => {
@@ -314,6 +343,20 @@ const OrderStatus: React.FC = () => {
                 <span>Tổng cộng</span>
                 <strong className={styles.totalAmt}>{total.toLocaleString('vi-VN')}đ</strong>
               </div>
+              <Button
+                block
+                icon={<SyncOutlined />}
+                loading={reordering}
+                style={{ marginTop: 14 }}
+                onClick={() => reorder(order)}
+              >
+                Đặt lại đơn này
+              </Button>
+              {canCancel && (
+                <Button block danger loading={cancelling} style={{ marginTop: 8 }} onClick={handleCancel}>
+                  Hủy đơn
+                </Button>
+              )}
             </div>
           </div>
         )}

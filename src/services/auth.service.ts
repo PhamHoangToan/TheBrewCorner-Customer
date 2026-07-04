@@ -17,6 +17,7 @@ export interface RegisterPayload {
   email: string
   phone: string
   password: string
+  referralCode?: string
 }
 
 export const authService = {

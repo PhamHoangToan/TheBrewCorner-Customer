@@ -44,7 +44,9 @@ const TIER_LABEL: Record<string, string> = { SILVER: 'Bạc', GOLD: 'Vàng' }
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate()
   const [form] = Form.useForm<CheckoutForm>()
-  const { items, orderType, tableNumber, clearCart } = useCartStore()
+  const { items: cartItems, orderType, tableNumber, clearCart, buyNowItem, clearBuyNow } = useCartStore()
+  // "Đặt ngay" từ trang chi tiết món: dùng riêng 1 món, không đụng tới giỏ hàng thật
+  const items = buyNowItem ? [buyNowItem] : cartItems
   const user = useCustomerAuthStore((state) => state.user)
   const [submitting, setSubmitting] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'wallet'>('cash')
@@ -247,7 +249,8 @@ const CheckoutPage: React.FC = () => {
         payWithWallet: values.payment === 'wallet',
       })
       guestOrdersService.save(order, user?.id)
-      clearCart()
+      // Đặt ngay: đơn tách biệt khỏi giỏ hàng thật, chỉ dọn state buy-now, không đụng tới giỏ hàng
+      if (buyNowItem) clearBuyNow(); else clearCart()
       navigate(`/order/${order.id}`, { state: { order } })
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'Không thể tạo đơn hàng')

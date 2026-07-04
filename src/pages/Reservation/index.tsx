@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Form, Input, InputNumber, message } from 'antd'
+import { Button, Form, Input, InputNumber, message, Modal } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import Navbar from '../../components/Navbar'
 import { reservationService, type ApiReservation } from '../../services/reservation.service'
@@ -51,6 +51,28 @@ const ReservationPage: React.FC = () => {
       .then((res) => setHistory(res.items))
       .catch(() => setHistory([]))
   }, [form, user])
+
+  const canCancel = (r: ApiReservation) =>
+    ['PENDING', 'CONFIRMED'].includes(r.status) && new Date(r.reservedTime).getTime() - Date.now() >= 60 * 60 * 1000
+
+  const handleCancel = (id: string) => {
+    if (!user) return
+    Modal.confirm({
+      title: 'Hủy đặt bàn này?',
+      okText: 'Hủy đặt bàn',
+      okType: 'danger',
+      cancelText: 'Đóng',
+      onOk: async () => {
+        try {
+          const updated = await reservationService.cancel(id, user.id)
+          setHistory((prev) => prev.map((r) => r.id === id ? updated : r))
+          message.success('Đã hủy đặt bàn')
+        } catch (error) {
+          message.error(error instanceof Error ? error.message : 'Không hủy được đặt bàn này')
+        }
+      },
+    })
+  }
 
   const handleSubmit = async (values: ReservationForm) => {
     setSubmitting(true)
@@ -142,9 +164,14 @@ const ReservationPage: React.FC = () => {
                 <div className={styles.historyMeta}>
                   {new Date(r.reservedTime).toLocaleString('vi-VN')} — {r.numberOfGuests} khách
                 </div>
-                <span className={`${styles.statusBadge} ${styles[STATUS_CLASS[r.status]]}`}>
-                  {STATUS_LABEL[r.status]}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className={`${styles.statusBadge} ${styles[STATUS_CLASS[r.status]]}`}>
+                    {STATUS_LABEL[r.status]}
+                  </span>
+                  {canCancel(r) && (
+                    <Button size="small" danger onClick={() => handleCancel(r.id)}>Hủy</Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

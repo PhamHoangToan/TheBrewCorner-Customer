@@ -121,4 +121,7 @@ export const orderService = {
     apiClient.get<{ items: ApiOrder[]; total: number; page: number; limit: number }>(
       `/orders/customer/${encodeURIComponent(customerId)}`,
     ),
+  // Khách tự hủy đơn — BE chỉ cho phép khi đơn còn ở SENT (chưa pha chế/thanh toán)
+  cancel: (id: string, customerId: string) =>
+    apiClient.patch<ApiOrder>(`/orders/${encodeURIComponent(id)}/cancel-by-customer`, { customerId }),
 }

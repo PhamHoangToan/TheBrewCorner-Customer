@@ -27,4 +27,6 @@ export const reservationService = {
     apiClient.get<{ items: ApiReservation[]; total: number }>(
       `/reservations/my/${encodeURIComponent(customerId)}`,
     ),
+  cancel: (id: string, customerId: string) =>
+    apiClient.patch<ApiReservation>(`/reservations/${encodeURIComponent(id)}/cancel`, { customerId }),
 }

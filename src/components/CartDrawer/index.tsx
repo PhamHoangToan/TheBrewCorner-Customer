@@ -28,11 +28,13 @@ const itemVariants: Variants = {
 }
 
 const CartDrawer: React.FC = () => {
-  const { items, isCartOpen, closeCart, changeQty, removeItem } = useCartStore()
+  const { items, isCartOpen, closeCart, changeQty, removeItem, clearBuyNow } = useCartStore()
   const total = useCartTotal()
   const navigate = useNavigate()
 
   const handleCheckout = () => {
+    // Vào Checkout từ giỏ hàng thật → dọn "đặt ngay" còn sót (nếu có) để không đè lên giỏ hàng
+    clearBuyNow()
     closeCart()
     navigate('/checkout')
   }
